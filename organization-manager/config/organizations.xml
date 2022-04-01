@@ -1,0 +1,7 @@
+# sample xml file
+<organizations>
+	<organization name="group" id="1">
+		<group>clients-group1</group>
+		<group>clients-group2</group>
+	</organization>
+</organizations>
