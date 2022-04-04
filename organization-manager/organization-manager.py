@@ -136,7 +136,7 @@ def add_organizations_to_file(organizations):
         organization_to_add = ET.SubElement(ET.Element('organizations'), 'organization', name=organizations[org_id], id=org_id)
         root.append(organization_to_add)
         ET.indent(tree, space='\t', level=0)
-        tree.write(SRC_FILE, encoding='utf-8', short_empty_elements=False)
+        tree.write(SRC_FILE, xml_declaration=True, encoding='utf-8', short_empty_elements=False)
         logging.debug(f'"{organizations[org_id]}" added to "{SRC_FILE}"')
 
 
@@ -146,7 +146,7 @@ def del_organizations_from_file(organizations):
         root = tree.getroot()
         organization_to_del = root.find(f'.//*[@id="{org_id}"]')
         root.remove(organization_to_del)
-        tree.write(SRC_FILE)
+        tree.write(SRC_FILE, xml_declaration=True, encoding='utf-8', short_empty_elements=False)
         logging.debug(f'"{organizations[org_id]}" deleted from "{SRC_FILE}"')
 
 
