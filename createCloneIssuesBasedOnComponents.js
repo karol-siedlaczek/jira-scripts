@@ -38,3 +38,15 @@
         });
     });
   });
+
+  
+  /*AJS.$("#select2-example").auiSelect2({
+          ajax: {
+            url: "rest/scriptrunner/latest/custom/getProjectComponents",
+            data: function (params) {
+              var query = {projectKey: params.projectKey}
+              console.log(query)
+              return query;
+            }
+          }
+        });*/
