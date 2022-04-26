@@ -7,46 +7,38 @@
             e.preventDefault();
             AJS.dialog2(event.target).hide();
             AJS.dialog2(event.target).remove();
-        }); 
+        });
         $(event.target).find("#cancel-button").click(function (e){
             e.preventDefault();
             AJS.dialog2(event.target).hide();
             AJS.dialog2(event.target).remove();
         });
         $(event.target).find("#create-button").click(function (e){
-        		var selectData = $('#components-select2').select2('data')
+            var selectData = $('#components-select2').select2('data')
             if (selectData[0] === undefined || selectData[0] === null)
-              AJS.flag({type: 'error', body: 'Need to select at least one component', close: 'auto'})
-            else {             
-            	var data = []
-            	selectData.forEach(function(elem){
-                data.push(elem.text)
-            	})
+              AJS.flag({type: 'error', body: 'At least one component need to be selected', close: 'auto'})
+            else {
+                var components = []
+                selectData.forEach(function(elem){
+                   components.push(elem.text)
+                })
               AJS.$.ajax({
-                url: "/rest/scriptrunner/latest/custom/cloneIssueWithComponent?components=" + data.join(','),
-                type: 'GET',
+                url: "/rest/scriptrunner/latest/custom/cloneIssueWithComponent?components=" + components.join(',') + "&issueKey=" + JIRA.Issue.getIssueKey(),
+                type: 'POST',
                 dataType: 'json',
+                contentType: 'application/json',
                 async: false,
-                success: function(response) {
-            			AJS.flag({type: 'success', body: response, close: 'auto'})
-        				},
-                error: function(response) {
-                	AJS.flag({type: 'error', body: response, close: 'auto'})
+                success: function(response){
+                   JIRA.trigger(JIRA.Events.REFRESH_ISSUE_PAGE, [JIRA.Issue.getIssueId()]);
+                   AJS.dialog2(event.target).hide();
+                   AJS.dialog2(event.target).remove();
+                },
+                error: function(response){
+                   AJS.flag({type: 'error', body: 'Necessary endpoint could not be accessed. Check console logs or contact your Jira Administrator', close: 'auto'});
                 }
               });
             }
         });
     });
   });
-
-  
-  /*AJS.$("#select2-example").auiSelect2({
-          ajax: {
-            url: "rest/scriptrunner/latest/custom/getProjectComponents",
-            data: function (params) {
-              var query = {projectKey: params.projectKey}
-              console.log(query)
-              return query;
-            }
-          }
-        });*/
+})(AJS.$);
