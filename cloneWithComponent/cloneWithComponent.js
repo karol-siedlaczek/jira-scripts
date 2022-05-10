@@ -23,7 +23,7 @@
                    components.push(elem.text)
                 })
               AJS.$.ajax({
-                url: "/rest/scriptrunner/latest/custom/cloneIssueWithComponent?components=" + components.join(',') + "&issueKey=" + JIRA.Issue.getIssueKey(),
+                url: "/rest/scriptrunner/latest/custom/cloneWithComponent?components=" + components.join(',') + "&issueKey=" + JIRA.Issue.getIssueKey(),
                 type: 'POST',
                 dataType: 'json',
                 contentType: 'application/json',
