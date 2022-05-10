@@ -93,16 +93,16 @@
                 			})
                             AJS.$.ajax({
                                 url: "/rest/scriptrunner/latest/custom/closePurchase" + 
-                                    '?createAsset=' 	+ toggleIsChecked + 
-                                    '&summary=' 		+ $('#summary-field').val() + 
-                                    '&assetType='		+ $('input[name=asset-type-radio]').filter(":checked").val() +
-                                    '&serviceTag=' 	  	+ $('#service-tag-field').val() + 
-                                    '&model=' 		  	+ $('#model-field').val() + 
-                                    '&invoiceNumber=' 	+ $('#invoice-number-field').val() + 
-                                    '&software='		+ softwareFieldChoices.join(',') +
-                                    '&licenseType='		+ $('#license-type-field').val() +
-                                    '&expireTime='		+ $('#expire-time-field').val() +
-                                    '&issueKey=' 	  	+ JIRA.Issue.getIssueKey(),
+                                    '?createAsset=' 		+ toggleIsChecked + 
+                                    '&summary=' 			+ $('#summary-field').val() + 
+                                    '&assetType='			+ $('input[name=asset-type-radio]').filter(":checked").val() +
+                                    '&serviceTag=' 	  		+ $('#service-tag-field').val() + 
+                                    '&model=' 		  		+ $('#model-field').val() + 
+                                    '&invoiceNumber=' 		+ $('#invoice-number-field').val() + 
+                                    '&software='			+ softwareFieldChoices.join(',') +
+                                    '&licenseType='			+ $('#license-type-field').val() +
+                                    '&expireTime='			+ $('#expire-time-field').val() +
+                                    '&issueKey=' 	  		+ JIRA.Issue.getIssueKey(),
                                 type: 'POST',
                                 dataType: 'json',
                                 contentType: 'application/json',
@@ -139,12 +139,7 @@
                                 dataType: 'json',
                                 contentType: 'application/json',
                                 async: false,
-                                /*data: {
-                                    asset: toggleIsChecked,
-                                    test: JIRA.Issue.getIssueKey()
-                                },*/
                                 success: function(response, data) {
-                                	//data = JSON.stringify(data)
                                     JIRA.trigger(JIRA.Events.REFRESH_ISSUE_PAGE, [JIRA.Issue.getIssueId()]);
                                     AJS.dialog2(event.target).hide();
                                     AJS.dialog2(event.target).remove();
