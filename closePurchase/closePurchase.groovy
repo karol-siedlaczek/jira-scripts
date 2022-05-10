@@ -1,6 +1,3 @@
-// Copyright 2022 Redge Technologies
-// Author: K. Siedlaczek
-
 import java.sql.Timestamp
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
@@ -130,14 +127,6 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
               </footer>
         </section>
         """
-    /*
-    <div class="field-group" id="place-field-group" style="display: none">
-                 <label for="place-field">Place<span class="aui-icon icon-required">(required)</span></label>
-                 <aui-select id="place-field" name="place" placeholder="Select a place">
-                 	${placeOptions}
-                 </aui-select>
-              </div>
-     */
     Response.ok().type(MediaType.TEXT_HTML).entity(dialog.toString()).header('header', 'value').build()
 }
 
@@ -170,8 +159,7 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
         else {
             def softwareParam = queryParams.getFirst('software') as String
             def licenseTypeParam = queryParams.getFirst('licenseType') as String
-            def expireTimeParam 
-            //def softwareField = customFieldManager.getCustomFieldObject(11709)
+            def expireTimeParam
     		def licenseTypeField = customFieldManager.getCustomFieldObject(11902)
             def expireTimeField = customFieldManager.getCustomFieldObject(11712)
             if (queryParams.getFirst('expireTime') != '')
@@ -215,9 +203,5 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
 getSoftwareOptions(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, body ->
 	def project = issueManager.getIssueObject('ASSET-1').getProjectObject()  // to load available options related to project
     def components = project.getComponents()['name']
-    //def options = ''
-    //for (component in components)
-    //    options = options + "<option value=${component}>${component}</option>"
-    //return Response.ok([success: {name: components}]).build()
     return Response.ok(components).build()
 }
