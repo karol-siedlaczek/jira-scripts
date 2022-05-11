@@ -41,7 +41,7 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
     for (licenseType in licenseTypes)
     	licenseTypeOptions = "${licenseTypeOptions}<aui-option>${licenseType}</aui-option>"
  	def dialog =
-    """
+     """
       <section role="dialog" id="close-purchase-dialog" class="aui-layer aui-dialog2 aui-dialog2-medium" aria-hidden="true" data-aui-remove-on-hide="true">
           <header class="aui-dialog2-header">
             <h2 class="aui-dialog2-header-main">Close Purchase</h2>
@@ -94,24 +94,29 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
               </div>
               
               <div class="field-group" id="service-tag-field-group" style="display: none">
-              	<label for="service-tag-field">Service Tag<span class="aui-icon icon-required">(required)</span></label></label>
+              	<label for="service-tag-field">Service Tag<span class="aui-icon icon-required">(required)</span></label>
     			<input class="text" type="text" id="service-tag-field" name="Service Tag">
               </div>
               
               <div class="field-group" id="model-field-group" style="display: none">
-              	<label for="model-field">Model<span class="aui-icon icon-required">(required)</span></label></label>
+              	<label for="model-field">Model<span class="aui-icon icon-required">(required)</span></label>
     			<input class="text" type="text" id="model-field" name="Model">
               </div>
               
               <div class="field-group" id="invoice-number-field-group" style="display: none">
-              	<label for="invoice-number-field">Invoice number<span class="aui-icon icon-required">(required)</span></label></label>
+              	<label for="invoice-number-field">Invoice number<span class="aui-icon icon-required">(required)</span></label>
     			<input class="text" type="text" id="invoice-number-field" name="Invoice number">
               </div>
               
               <div class="field-group" id="cost-field-group">
-                <label for="cost-field">Cost [PLN]<span class="aui-icon icon-required">(required)</span></label></label>
+                <label for="cost-field">Cost [PLN]<span class="aui-icon icon-required">(required)</span></label>
     			<input class="text" id="cost-field" name="Cost" type="number" min="1" step="0.01">
               </div> 
+              
+              <div class="field-group" id="description-field-group" style="display: none">
+            	<label for="description-field">Description</label>
+            	<textarea class="textarea" name="Description" id="description-field" placeholder="Your description here..."></textarea>
+        	 </div>
               
             </form>
             </div>
@@ -126,7 +131,7 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
                 </div>
               </footer>
         </section>
-        """
+      """
     Response.ok().type(MediaType.TEXT_HTML).entity(dialog.toString()).header('header', 'value').build()
 }
 
@@ -138,10 +143,12 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
     def message = ''
     if (createAsset) {
         def summaryParam = queryParams.getFirst('summary') as String
+        def descriptionParam = queryParams.getFirst('description') as String
         def assetTypeParam = queryParams.getFirst('assetType')
     	def newIssue = issueFactory.getIssue()
         def assetProject = projectManager.getProjectByCurrentKey('ASSET')
     	newIssue.setSummary(summaryParam)
+        newIssue.setDescription(descriptionParam)
     	newIssue.setProjectObject(assetProject)
         newIssue.reporter = remoteUser // user whose triggered dialog
         if (assetTypeParam == 'Device'){
@@ -159,7 +166,8 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
         else {
             def softwareParam = queryParams.getFirst('software') as String
             def licenseTypeParam = queryParams.getFirst('licenseType') as String
-            def expireTimeParam
+            def expireTimeParam 
+            //def softwareField = customFieldManager.getCustomFieldObject(11709)
     		def licenseTypeField = customFieldManager.getCustomFieldObject(11902)
             def expireTimeField = customFieldManager.getCustomFieldObject(11712)
             if (queryParams.getFirst('expireTime') != '')
