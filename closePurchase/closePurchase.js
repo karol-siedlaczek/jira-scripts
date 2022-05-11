@@ -2,6 +2,31 @@
 	$(function() {
     	AJS.dialog2.on('show', function(event) {
         	if (event.target.id === 'close-purchase-dialog') {
+            	const expireTimeField = document.getElementById('expire-time-field')
+                const controller = new AJS.DatePicker(expireTimeField, {'overrideBrowserDefault': true})
+                var softwareOptions = []
+                AJS.$.ajax({
+                    url: '/rest/scriptrunner/latest/custom/getSoftwareOptions',
+                    type: 'GET',
+                    datatype: 'json',
+                    async: false,
+                    success: function(data){softwareOptions = data}
+                })
+                AJS.$("#software-field").auiSelect2({
+                    tags: softwareOptions,
+                    tokenSeparators: [','],
+                    placeholder: 'Select a component/s',
+                    createTag: function (params, term) {
+                        var term = $.trim(params.term);
+                        if (term === '')
+                            return null
+                        return {
+                            id: term + ' (new)',
+                            text: term + ' (new)',
+                            newTag: true // add additional parameters
+                        }
+                    }
+                });
             	$(event.target).find("#close-button").click(function(e) {
                 	e.preventDefault();
                 	AJS.dialog2(event.target).hide();
@@ -12,48 +37,12 @@
                 	AJS.dialog2(event.target).hide();
                 	AJS.dialog2(event.target).remove();
               	});
-              	$('#create-asset-toggle').change(function() {
+              	$(event.target).find('#create-asset-toggle').change(function() {
                 	let toggleIsChecked = $('#create-asset-toggle').prop('checked')
                     globalFields(toggleIsChecked)
                   	if (toggleIsChecked) {
-                    	const expireTimeField = document.getElementById('expire-time-field')
-						const controller = new AJS.DatePicker(expireTimeField, {'overrideBrowserDefault': true})
-                        var softwareOptions = []
-                        AJS.$.ajax({
-                        	url: '/rest/scriptrunner/latest/custom/getSoftwareOptions',
-                            type: 'GET',
-                            datatype: 'json',
-                            async: false,
-                            success: function(data){softwareOptions = data}
-                        })
-                        AJS.$("#software-field").auiSelect2({
-                            tags: softwareOptions,
-                            tokenSeparators: [','],
-                            placeholder: 'Select a component/s',
-                            createTag: function (params, term) {
-                                var term = $.trim(params.term);
-                                if (term === '')
-                                    return null
-                                return {
-                                    id: term + ' (new)',
-                                    text: term + ' (new)',
-                                    newTag: true // add additional parameters
-                                }
-                            },
-                            /*createTag: function (params, term) {
-                                    	return {
-                                        	id: params.term + ' new',
-                                        	text: params.term + ' new',
-                                        	newOption: true
-                                        }
-                                    }
-                             formatNoMatches: function(term) {
-        								return '<strong>' + term + '</strong> (New Component)';
-    						}*/
-                        });
-                        
                         deviceFields('show')
-                        $('#asset-type-field-group').change(function() {
+                        $(event.target).find('#asset-type-field-group').change(function() {
                         	if ($('#license-radio-field').prop('checked')) {
                                 licenseFields('show')
                                 deviceFields('hide')
@@ -93,16 +82,17 @@
                 			})
                             AJS.$.ajax({
                                 url: "/rest/scriptrunner/latest/custom/closePurchase" + 
-                                    '?createAsset=' 		+ toggleIsChecked + 
-                                    '&summary=' 			+ $('#summary-field').val() + 
-                                    '&assetType='			+ $('input[name=asset-type-radio]').filter(":checked").val() +
-                                    '&serviceTag=' 	  		+ $('#service-tag-field').val() + 
-                                    '&model=' 		  		+ $('#model-field').val() + 
-                                    '&invoiceNumber=' 		+ $('#invoice-number-field').val() + 
-                                    '&software='			+ softwareFieldChoices.join(',') +
-                                    '&licenseType='			+ $('#license-type-field').val() +
-                                    '&expireTime='			+ $('#expire-time-field').val() +
-                                    '&issueKey=' 	  		+ JIRA.Issue.getIssueKey(),
+                                    '?createAsset=' 	+ toggleIsChecked + 
+                                    '&summary=' 		+ $('#summary-field').val() + 
+                                    '&assetType='		+ $('input[name=asset-type-radio]').filter(":checked").val() +
+                                    '&serviceTag=' 	  	+ $('#service-tag-field').val() + 
+                                    '&model=' 		  	+ $('#model-field').val() + 
+                                    '&invoiceNumber=' 	+ $('#invoice-number-field').val() + 
+                                    '&software='		+ softwareFieldChoices.join(',') +
+                                    '&licenseType='		+ $('#license-type-field').val() +
+                                    '&expireTime='		+ $('#expire-time-field').val() +
+                                    '&description='		+ $('#description-field').val() +
+                                    '&issueKey=' 	  	+ JIRA.Issue.getIssueKey(),
                                 type: 'POST',
                                 dataType: 'json',
                                 contentType: 'application/json',
@@ -139,7 +129,12 @@
                                 dataType: 'json',
                                 contentType: 'application/json',
                                 async: false,
+                                /*data: {
+                                    asset: toggleIsChecked,
+                                    test: JIRA.Issue.getIssueKey()
+                                },*/
                                 success: function(response, data) {
+                                	//data = JSON.stringify(data)
                                     JIRA.trigger(JIRA.Events.REFRESH_ISSUE_PAGE, [JIRA.Issue.getIssueId()]);
                                     AJS.dialog2(event.target).hide();
                                     AJS.dialog2(event.target).remove();
@@ -206,6 +201,7 @@
                     $('#not-create-asset-paragraph').show() 
                 	$('#asset-type-field-group').hide()
                     $('#summary-field-group').hide()
+                    $('#description-field-group').hide()
                     $('#create-asset-paragraph').hide()
                 	break
                 case true:
@@ -213,6 +209,7 @@
                     $('#not-create-asset-paragraph').hide() 
                 	$('#asset-type-field-group').show()
                     $('#summary-field-group').show()
+                    $('#description-field-group').show()
                     $('#create-asset-paragraph').show()
 					$("#device-radio-button").prop("checked", true);
                     break
