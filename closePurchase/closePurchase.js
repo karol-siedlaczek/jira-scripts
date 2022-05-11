@@ -4,39 +4,35 @@
         	if (event.target.id === 'close-purchase-dialog') {
                 const expireTimeField = $(event.target).find('#expire-time-field')[0]
                 const controller = new AJS.DatePicker(expireTimeField, {'overrideBrowserDefault': true})
-                var softwareOptions = []
+                var usersList
+                var licenseComponents
                 AJS.$.ajax({
-                    url: '/rest/scriptrunner/latest/custom/getSoftwareOptions',
+                    url: '/rest/scriptrunner/latest/custom/getActiveUsers',
                     type: 'GET',
                     datatype: 'json',
                     async: false,
-                    success: function(data){softwareOptions = data}
+                    success: function(data){ usersList = data }
+                })
+                AJS.$(".aui-select2 select").auiSelect2()
+                makeUserPicker(AJS.$("#user-field"), usersList);
+                AJS.$.ajax({
+                    url: '/rest/scriptrunner/latest/custom/getAssetComponents?type=license',
+                    type: 'GET',
+                    datatype: 'json',
+                    async: false,
+                    success: function(data){licenseComponents = data}
                 })
                 AJS.$("#software-field").auiSelect2({
-                    tags: softwareOptions,
+                    tags: licenseComponents,
                     tokenSeparators: [','],
-                    placeholder: 'Select a component/s',
-                    createTag: function (params, term) {
-                        var term = $.trim(params.term);
-                        if (term === '')
-                            return null
-                        return {
-                            id: term + ' (new)',
-                            text: term + ' (new)',
-                            newTag: true // add additional parameters
-                        }
-                    },
-                    /*createTag: function (params, term) {
-                                    	return {
-                                        	id: params.term + ' new',
-                                        	text: params.term + ' new',
-                                        	newOption: true
-                                        }
-                                    }
-                             formatNoMatches: function(term) {
-        								return '<strong>' + term + '</strong> (New Component)';
-    						}*/
-                });
+                    createTag: function (tag) {
+                		return {
+                    		id: tag.term + ' (New component)',
+                    		text: tag.term + ' (New component)',
+                    		newOption: true
+                		}
+            		},
+                })
             	$(event.target).find("#close-button").click(function(e) {
                 	e.preventDefault();
                 	AJS.dialog2(event.target).hide();
@@ -69,7 +65,7 @@
                     }
                   }); 
                   $(event.target).find("#create-button").click(function(e) {
-                  		let toggleIsChecked = $('#create-asset-toggle').prop('checked');
+                  		let toggleIsChecked = $(event.target).find('#create-asset-toggle').prop('checked');
                         var requiredFieldsFilled = true
                         $(event.target).find('#close-purchase-form input').each(function (){
                         	if ($(this).is(':visible') && this.value === '' && !(this.id).contains('s2id_autogen')){ 
@@ -85,10 +81,10 @@
                         	});
                         }
                   		if (toggleIsChecked && requiredFieldsFilled) {
-                        	var softwareFieldData = $(event.target).find('#software-field').select2('data')
-                            var softwareFieldChoices = []
-                        	softwareFieldData.forEach(function(elem){
-                   				softwareFieldChoices.push(elem.text)
+                        	var licenseComponentsSelected = $(event.target).find('#software-field').select2('data')
+                            var licenseComponentsList = []
+                        	licenseComponentsSelected.forEach(function(elem){
+                   				licenseComponentsList.push(elem.text)
                 			})
                             AJS.$.ajax({
                                 url: "/rest/scriptrunner/latest/custom/closePurchase" + 
@@ -98,7 +94,8 @@
                                     '&serviceTag=' 	  	+ $(event.target).find('#service-tag-field').val() + 
                                     '&model=' 		  	+ $(event.target).find('#model-field').val() + 
                                     '&invoiceNumber=' 	+ $(event.target).find('#invoice-number-field').val() + 
-                                    '&software='		+ softwareFieldChoices.join(',') +
+                                    '&software='		+ licenseComponentsList +
+                                    '&user='			+ $(event.target).find('#user-field').select2('data').id +
                                     '&licenseType='		+ $(event.target).find('#license-type-field').val() +
                                     '&expireTime='		+ $(event.target).find('#expire-time-field').val() +
                                     '&description='		+ $(event.target).find('#description-field').val() +
@@ -162,6 +159,50 @@
               	}
             });
         });
+        function formatWithAvatar(opt_data) {
+            var personName = opt_data.person && opt_data.person.displayName ? opt_data.person.displayName : opt_data.person && opt_data.person.name ? opt_data.person.name : opt_data.unknownName;
+            return '<span>' + aui.avatar.avatar({
+                size: opt_data.size,
+                avatarImageUrl: opt_data.person.avatarUrl
+            }) + AJS.escapeHtml(personName) + '</span>';
+        }
+        
+        function makeUserPicker($el, usersList, multiple) {
+            $el.auiSelect2({
+                hasAvatar: true,
+                formatResult: function (result) {
+                    return formatWithAvatar({
+                        size: 'small',
+                        person: {
+                            displayName: result.text,
+                            name: result.id,
+                            avatarUrl: result.imgSrc
+                        }
+                    });
+                },
+                formatSelection: function(result) {
+                    return formatWithAvatar({
+                        size: 'xsmall',
+                        person: {
+                            displayName: result.text,
+                            name: result.id,
+                            avatarUrl: result.imgSrc
+                        }
+                    });
+                },
+                query: function (query) {
+                    var results = [];
+                    for (var i = 0, ii = usersList.length; i < ii; i++) {
+                        var result = usersList[i];
+                        if (result.text.toLowerCase().indexOf(query.term.toLowerCase()) > -1) {
+                            results.push(result);
+                        }
+                    }
+                    query.callback({results: results});
+                },
+                multiple: multiple
+            });
+        }  
         
         function deviceFields (event, oper){
         	switch(oper){
@@ -185,11 +226,14 @@
         function licenseFields (event, oper){
         	switch (oper){
             	case 'hide':
+                	$(event.target).find('#user-field-group').hide()
                 	$(event.target).find('#software-field-group').hide()
+                    $(event.target).find('#expire-time-field-group').hide()
                     $(event.target).find('#license-type-field-group').hide()
                     $(event.target).find('#expire-time-field-group').hide()
                 	break
                 case 'show':
+                	$(event.target).find('#user-field-group').show()
                     $(event.target).find('#software-field-group').show()
                     $(event.target).find('#license-type-field-group').show()
                     $(event.target).find('#license-type-field').change(function() {
@@ -208,19 +252,19 @@
         	switch (toggleIsChecked){
             	case false:
                 	$(event.target).find('#cost-field-group').show()
-                    $(event.target).find('#not-create-asset-paragraph').show() 
+                    $(event.target).find('#not-create-asset-paragraph').css('display', 'inline')
                 	$(event.target).find('#asset-type-field-group').hide()
                     $(event.target).find('#summary-field-group').hide()
                     $(event.target).find('#description-field-group').hide()
-                    $(event.target).find('#create-asset-paragraph').hide()
+                    $(event.target).find('#create-asset-paragraph').css('display', 'none')
                 	break
                 case true:
                     $(event.target).find('#cost-field-group').hide()
-                    $(event.target).find('#not-create-asset-paragraph').hide() 
+                    $(event.target).find('#not-create-asset-paragraph').css('display', 'none')
                 	$(event.target).find('#asset-type-field-group').show()
                     $(event.target).find('#summary-field-group').show()
                     $(event.target).find('#description-field-group').show()
-                    $(event.target).find('#create-asset-paragraph').show()
+                    $(event.target).find('#create-asset-paragraph').css('display', 'inline')
 					$(event.target).find("#device-radio-button").prop("checked", true);
                     break
                 default:
