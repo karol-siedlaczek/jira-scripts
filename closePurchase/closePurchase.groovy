@@ -14,6 +14,7 @@ import com.atlassian.jira.component.ComponentAccessor
 import com.atlassian.jira.workflow.TransitionOptions
 import com.atlassian.sal.api.ApplicationProperties
 import com.atlassian.sal.api.user.UserManager
+import com.atlassian.jira.bc.project.component.MutableProjectComponent
 import com.atlassian.sal.api.UrlMode
 
 @BaseScript CustomEndpointDelegate delegate
@@ -61,7 +62,7 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
               
               <div class="field-group" id="summary-field-group" style="display: none">
               	<label for="summary-field">Summary<span class="aui-icon icon-required">(required)</span></label>
-    			<input class="text" type="text" id="summary-field" name="Summary" value="${currIssue.summary}">
+    			<input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${currIssue.summary}" required>
               </div>
               
               <div class="field-group" id="asset-type-field-group" style="display: none">
@@ -76,46 +77,51 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
         			</div>
               </div>
               
+              <div class='field-group' id="user-field-group" style="display: none">
+              	<label for="user-field">User</label>
+                <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user"/>
+              </div>
+              
               <div class="field-group" id="software-field-group" style="display: none">
               	<label for="software-field">Software<span class="aui-icon icon-required"></span></label>
-    			<input class="text" type="text" length="30" id="software-field" name="Software" placeholder="Select a component/s" multiple=""/>
+    			<input class="text medium-long-field" type="text" length="30" id="software-field" name="Software" placeholder="Select a component/s" multiple="" required/>
               </div>
              
               <div class="field-group" id="license-type-field-group" style="display: none">
-              	 <label for="license-type-field">License type<span class="aui-icon icon-required">(required)</span></label>
-                 <aui-select id="license-type-field" name="License Type" placeholder="Select a license type">
+              	 <label for="license-type-field">License type<span class="aui-icon icon-required"></span></label>
+                 <aui-select class="medium-long-field" id="license-type-field" name="License Type" placeholder="Select a license type" required="true">
                  	${licenseTypeOptions}
                  </aui-select>
               </div>
               
               <div class="field-group" id="expire-time-field-group" style="display: none">
-              	<label for="expire-time-field">Expire time<span class="aui-icon icon-required">(required)</span></label>
-                <input class="aui-date-picker text" id="expire-time-field" name="Expire time" type="date"/>
+              	<label for="expire-time-field">Expire time<span class="aui-icon icon-required"></span></label>
+                <input class="aui-date-picker text medium-long-field" id="expire-time-field" name="Expire time" type="date" required/>
               </div>
               
               <div class="field-group" id="service-tag-field-group" style="display: none">
-              	<label for="service-tag-field">Service Tag<span class="aui-icon icon-required">(required)</span></label>
-    			<input class="text" type="text" id="service-tag-field" name="Service Tag">
+              	<label for="service-tag-field">Service Tag<span class="aui-icon icon-required"></span></label>
+    			<input class="text medium-long-field" type="text" id="service-tag-field" name="Service Tag" required/>
               </div>
               
               <div class="field-group" id="model-field-group" style="display: none">
-              	<label for="model-field">Model<span class="aui-icon icon-required">(required)</span></label>
-    			<input class="text" type="text" id="model-field" name="Model">
+              	<label for="model-field">Model<span class="aui-icon icon-required"></span></label>
+    			<input class="text medium-long-field" type="text" id="model-field" name="Model" required/>
               </div>
               
               <div class="field-group" id="invoice-number-field-group" style="display: none">
-              	<label for="invoice-number-field">Invoice number<span class="aui-icon icon-required">(required)</span></label>
-    			<input class="text" type="text" id="invoice-number-field" name="Invoice number">
+              	<label for="invoice-number-field">Invoice number<span class="aui-icon icon-required"></span></label>
+    			<input class="text medium-long-field" type="text" id="invoice-number-field" name="Invoice number" required/>
               </div>
               
               <div class="field-group" id="cost-field-group">
                 <label for="cost-field">Cost [PLN]<span class="aui-icon icon-required">(required)</span></label>
-    			<input class="text" id="cost-field" name="Cost" type="number" min="1" step="0.01">
+    			<input class="text medium-long-field" id="cost-field" name="Cost" type="number" min="1" step="0.01" required/>
               </div> 
               
               <div class="field-group" id="description-field-group" style="display: none">
             	<label for="description-field">Description</label>
-            	<textarea class="textarea" name="Description" id="description-field" placeholder="Your description here..."></textarea>
+            	<textarea class="textarea medium-long-field" name="Description" id="description-field" placeholder="Your description here..."></textarea>
         	 </div>
               
             </form>
@@ -126,8 +132,8 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
                     <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>     
                 </div>
                 <div class="aui-dialog2-footer-hint">
-              		<p id="create-asset-paragraph" style="display: none">Choose this option if you want to create asset</p>
-            		<p id="not-create-asset-paragraph">Choose this option if you do not want to create asset</p>
+              		<p id="create-asset-paragraph" style="display: none">Choose this option if you want to create an asset</p>
+            		<p id="not-create-asset-paragraph" style="display: inline">Choose this option if you do not want to create an asset</p>
                 </div>
               </footer>
         </section>
@@ -145,8 +151,10 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
         def summaryParam = queryParams.getFirst('summary') as String
         def descriptionParam = queryParams.getFirst('description') as String
         def assetTypeParam = queryParams.getFirst('assetType')
+        def userParam = queryParams.getFirst('user') as String
     	def newIssue = issueFactory.getIssue()
         def assetProject = projectManager.getProjectByCurrentKey('ASSET')
+        def userField = customFieldManager.getCustomFieldObject(11701)
     	newIssue.setSummary(summaryParam)
         newIssue.setDescription(descriptionParam)
     	newIssue.setProjectObject(assetProject)
@@ -162,29 +170,36 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
         	newIssue.setCustomFieldValue(serviceTagField, serviceTagParam)
         	newIssue.setCustomFieldValue(modelField, modelParam)
         	newIssue.setCustomFieldValue(invoiceNumberField, invoiceNumberParam)
+            newIssue.setCustomFieldValue(userField, userManager.getUserByName(userParam))
         }
         else {
             def softwareParam = queryParams.getFirst('software') as String
             def licenseTypeParam = queryParams.getFirst('licenseType') as String
             def expireTimeParam 
-            //def softwareField = customFieldManager.getCustomFieldObject(11709)
     		def licenseTypeField = customFieldManager.getCustomFieldObject(11902)
             def expireTimeField = customFieldManager.getCustomFieldObject(11712)
             if (queryParams.getFirst('expireTime') != '')
                 expireTimeParam = Timestamp.valueOf("${queryParams.getFirst('expireTime')} 00:00:00.000")
-            log.warn(expireTimeParam)
             for (software in softwareParam.split(',')){
+                log.warn(software)
                 def component = projectComponentManager.findByComponentName(assetProject.id, software)
                 if (!component){
-                    component = projectComponentManager.create(software, null, null, 1, assetProject.id)
-                    log.warn("new component ${component['name']} added to component's list in ${assetProject.key}")
-                }       	
+                    component = projectComponentManager.create(software, 'license', null, 1, assetProject.id)
+                    log.warn("component ${component['name']} added to component's list in ${assetProject.key}")
+                }
+                else if (!(component.getDescription()).contains('license')){ // add to desc string to declare component as access
+                    def mutableComponent = MutableProjectComponent.copy(component)
+                    mutableComponent.setDescription("${component.getDescription()} license")
+                    component = projectComponentManager.update(mutableComponent)
+                    log.warn("component ${component['name']} already exists, only appended 'license' to description")
+                }
                 newIssue.setComponent(newIssue.getComponents() + component)
             }
             def availableLicenseTypes = optionsManager.getOptions(licenseTypeField.getRelevantConfig(newIssue))
 			def licenseTypeValue = availableLicenseTypes.find { it.value == licenseTypeParam }
             newIssue.setCustomFieldValue(licenseTypeField, licenseTypeValue)  
             newIssue.setCustomFieldValue(expireTimeField, expireTimeParam)
+            newIssue.setCustomFieldValue(userField, userManager.getUserByName(userParam))
             newIssue.issueTypeId = 11202
         }
         issueManager.createIssueObject(remoteUser, newIssue)
@@ -206,10 +221,4 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
     	issueService.transition(remoteUser, transitionValidationResult)
     UserMessageUtil.success(message as String)
     return Response.ok([success: message]).build()
-}
-
-getSoftwareOptions(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, body ->
-	def project = issueManager.getIssueObject('ASSET-1').getProjectObject()  // to load available options related to project
-    def components = project.getComponents()['name']
-    return Response.ok(components).build()
 }

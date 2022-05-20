@@ -28,12 +28,12 @@
                 dataType: 'json',
                 contentType: 'application/json',
                 async: false,
-                success: function(response){
+                success: function(){
                    JIRA.trigger(JIRA.Events.REFRESH_ISSUE_PAGE, [JIRA.Issue.getIssueId()]);
                    AJS.dialog2(event.target).hide();
                    AJS.dialog2(event.target).remove();
                 },
-                error: function(response){
+                error: function(){
                    AJS.flag({type: 'error', body: 'Necessary endpoint could not be accessed. Check console logs or contact your Jira Administrator', close: 'auto'});
                 }
               });

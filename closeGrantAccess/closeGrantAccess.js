@@ -2,10 +2,11 @@
 	$(function() {
     	AJS.dialog2.on('show', function(event) {
         	if (event.target.id === 'close-grant-access-dialog') {
-            	var usersList
-                var accessComponents
+            	let usersList
+                let accessComponents
                 AJS.$.ajax({
-                    url: '/rest/scriptrunner/latest/custom/getActiveUsers',
+                    url: '/rest/scriptrunner/latest/custom/getActiveUsers' +
+                        '?accessToken=' 	+ 'token',
                     type: 'GET',
                     datatype: 'json',
                     async: false,
@@ -25,7 +26,7 @@
                     tokenSeparators: [','],
                     placeholder: 'Select a component/s',
                     createTag: function (params, term) {
-                        var term = $.trim(params.term);
+                        term = $.trim(params.term);
                         if (term === '')
                             return null
                         return {
@@ -56,7 +57,7 @@
                 }); 
                 $(event.target).find("#create-button").click(function(e) {
                     let toggleIsChecked = $(event.target).find('#create-asset-toggle').prop('checked');
-                    var requiredFieldsFilled = true
+                    let requiredFieldsFilled = true
                     $(event.target).find('#close-grant-access-form input').each(function (){
                         if ($(this).is(':visible') && this.value === '' && !(this.id).contains('s2id_autogen')){ 
                             requiredFieldsFilled = false  
@@ -71,13 +72,13 @@
                         });
                     }
                     if (toggleIsChecked && requiredFieldsFilled) {
-                        var usersSelected = $(event.target).find('#user-field').select2('data')
-                        var usersList = []
+                        let usersSelected = $(event.target).find('#user-field').select2('data')
+                        let usersList = []
                         usersSelected.forEach(function(elem){
                             usersList.push(elem.id)
                         })
-                        var accessComponentsSelected = $(event.target).find('#environment-field').select2('data')
-                        var accessComponentsList = []
+                        let accessComponentsSelected = $(event.target).find('#environment-field').select2('data')
+                        let accessComponentsList = []
                         accessComponentsSelected.forEach(function(elem){
                             accessComponentsList.push(elem.id)
                         })
@@ -93,12 +94,12 @@
                             dataType: 'json',
                             contentType: 'application/json',
                             async: false,
-                            success: function(response) {
+                            success: function() {
                                 JIRA.trigger(JIRA.Events.REFRESH_ISSUE_PAGE, [JIRA.Issue.getIssueId()]);
                                 AJS.dialog2(event.target).hide();
                                 AJS.dialog2(event.target).remove();
                             },
-                            error: function(response) {
+                            error: function() {
                                 AJS.flag({
                                     type: 'error',
                                     body: 'Necessary endpoint could not be correctly accessed. Check console logs or contact your Jira Administrator',
@@ -116,12 +117,12 @@
                             dataType: 'json',
                             contentType: 'application/json',
                             async: false,
-                            success: function(response) {
+                            success: function() {
                                 JIRA.trigger(JIRA.Events.REFRESH_ISSUE_PAGE, [JIRA.Issue.getIssueId()]);
                                 AJS.dialog2(event.target).hide();
                                 AJS.dialog2(event.target).remove();
                             },
-                            error: function(response) {
+                            error: function() {
                                 AJS.flag({
                                     type: 'error',
                                     body: 'Necessary endpoint could not be correctly accessed. Check console logs or contact your Jira Administrator',
