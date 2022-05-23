@@ -20,6 +20,7 @@ def issueTypeManager = ComponentAccessor.getComponent(IssueTypeManager)
 def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationProperties)
 def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
 
+def PERSON_ISSUE_TYPE_ID = 123
 def ACCESS_LINK_ID = 123
 def USED_LINK_ID = 123
 
@@ -47,7 +48,7 @@ else { // issue does not exists - create
     def newIssue = issueFactory.getIssue() // creating Person Issue
     newIssue.setSummary(userFieldValue['displayName'] as String)
     newIssue.setProjectObject(projectManager.getProjectByCurrentKey(issue.projectObject.key))
-    newIssue.setIssueType(issueTypeManager.getIssueType('11200'))
+    newIssue.setIssueType(issueTypeManager.getIssueType(PERSON_ISSUE_TYPE_ID))
     newIssue.setCustomFieldValue(userField, userFieldValue)
     newIssue.setReporter(currentUser)
     issueManager.createIssueObject(currentUser, newIssue)
