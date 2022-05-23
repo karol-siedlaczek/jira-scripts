@@ -2,11 +2,11 @@
 (function($) {
 	$(function() {
     	AJS.dialog2.on('show', function(event) {
-        	if (event.target.id === 'close-grant-access-dialog') {
-            	let usersList
-                let accessComponents
+        	if (event.target.id === 'close-remove-access-dialog') {
+            	let usersLists
+                AJS.$(".aui-select2 select").auiSelect2()
                 AJS.$.ajax({
-                    url: '/rest/scriptrunner/latest/custom/getPersonAccesses' +
+                    url: '/rest/scriptrunner/latest/custom/getActiveUsers' +
                         '?accessToken=' 	+ 'token',
                     type: 'GET',
                     datatype: 'json',
@@ -14,29 +14,7 @@
                     success: function(data){ usersList = data }
                 })
                 AJS.$(".aui-select2 select").auiSelect2()
-                makeUserPicker(AJS.$("#user-field"), usersList, true);
-                AJS.$.ajax({
-                    url: '/rest/scriptrunner/latest/custom/getAssetComponents?type=access',
-                    type: 'GET',
-                    datatype: 'json',
-                    async: false,
-                    success: function(data){accessComponents = data}
-                })
-                AJS.$("#environment-field").auiSelect2({
-                    tags: accessComponents,
-                    tokenSeparators: [','],
-                    placeholder: 'Select a component/s',
-                    createTag: function (params, term) {
-                        term = $.trim(params.term);
-                        if (term === '')
-                            return null
-                        return {
-                            id: term + ' (New component)',
-                            text: term + ' (New Component)',
-                            newTag: true // add additional parameters
-                        }
-                    },
-                });
+                makeFieldPicker(AJS.$("#user-field"), usersList, 'small', 'user', true);
             	$(event.target).find("#close-button").click(function(e) {
                 	e.preventDefault();
                 	AJS.dialog2(event.target).hide();
@@ -48,18 +26,21 @@
                 	AJS.dialog2(event.target).remove();
               	});
               	$(event.target).find('#create-asset-toggle').change(function() {
-                	let toggleIsChecked = $(event.target).find('#create-asset-toggle').prop('checked')
-                    if (toggleIsChecked) {
-                    	globalFields(event, toggleIsChecked)
-                    }
-                    else {
-                    	globalFields(event, toggleIsChecked)
-                    }
+                	let accessList
+                	AJS.$.ajax({
+                        url: '/rest/scriptrunner/latest/custom/getPersonAccesses' +
+                            '?accessToken=' 	+ 'token',
+                        type: 'GET',
+                        datatype: 'json',
+                        async: false,
+                        success: function(data){ accessList = data }
+                	})
+                	makeFieldPicker(AJS.$("#issue-field"), accessList, 'xsmall', 'issue', true);
                 }); 
                 $(event.target).find("#create-button").click(function(e) {
                     let toggleIsChecked = $(event.target).find('#create-asset-toggle').prop('checked');
                     let requiredFieldsFilled = true
-                    $(event.target).find('#close-grant-access-form input').each(function (){
+                    $(event.target).find('#close-remove-access-form input').each(function (){
                         if ($(this).is(':visible') && this.value === '' && !(this.id).contains('s2id_autogen')){ 
                             requiredFieldsFilled = false  
                             console.error(this.id + ' is empty')
@@ -136,19 +117,20 @@
             }
         });
     });
-    function formatWithAvatar(opt_data) {
+    function formatWithAvatar(opt_data, type) {
         var personName = opt_data.person && opt_data.person.displayName ? opt_data.person.displayName : opt_data.person && opt_data.person.name ? opt_data.person.name : opt_data.unknownName;
-        return '<span>' + aui.avatar.avatar({
+        return '<span class="' + opt_data.type + '">' + aui.avatar.avatar({
             size: opt_data.size,
             avatarImageUrl: opt_data.person.avatarUrl
         }) + AJS.escapeHtml(personName) + '</span>';
     }
-    function makeUserPicker($el, usersList, multiple) {
+    function makeFieldPicker($el, usersList, imgSize, type, multiple) {
         $el.auiSelect2({
             hasAvatar: true,
             formatResult: function (result) {
                 return formatWithAvatar({
-                    size: 'small',
+                    size: imgSize,
+                    type: type,
                     person: {
                         displayName: result.text,
                         name: result.id,
@@ -183,20 +165,12 @@
     function globalFields (event, toggleIsChecked){
         switch(toggleIsChecked){
             case false:
-                $(event.target).find('#summary-field-group').hide()
                 $(event.target).find('#user-field-group').hide()
-                $(event.target).find('#environment-field-group').hide()
-                $(event.target).find('#description-field-group').hide()
-                $(event.target).find('#not-create-asset-paragraph').css('display', 'inline')
-                $(event.target).find('#create-asset-paragraph').css('display', 'none')
+                $(event.target).find('#issue-field-group').hide()
                 break
             case true:
-                $(event.target).find('#summary-field-group').show()
                 $(event.target).find('#user-field-group').show()
-                $(event.target).find('#environment-field-group').show()
-                $(event.target).find('#description-field-group').show()
-                $(event.target).find('#not-create-asset-paragraph').css('display', 'none')
-                $(event.target).find('#create-asset-paragraph').css('display', 'inline')
+                $(event.target).find('#issue-field-group').show()
                 break
             default:
                 log.error('provided value should be boolean')
