@@ -8,8 +8,8 @@ def userManager = ComponentAccessor.getUserManager()
 def issueService = ComponentAccessor.getIssueService()
 def currentUser = ComponentAccessor.getJiraAuthenticationContext().loggedInUser
 
-def TRANSITION_ID = 11 // id of transition "Remove access"
-def LINK_ID = 10802
+def TRANSITION_ID = 123 // id of transition "Remove access"
+def LINK_ID = 123
 def issueOutwardLinks = issueLinkManager.getOutwardLinks(issue.getId())
 def linkedIssue
 
