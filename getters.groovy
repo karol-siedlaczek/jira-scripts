@@ -1,5 +1,8 @@
 import com.atlassian.jira.component.ComponentAccessor
 import com.atlassian.jira.bc.JiraServiceContextImpl
+import com.atlassian.jira.jql.parser.JqlQueryParser
+import com.atlassian.jira.bc.issue.search.SearchService
+import com.atlassian.jira.web.bean.PagerFilter
 import com.atlassian.sal.api.ApplicationProperties
 import com.atlassian.sal.api.UrlMode
 import com.onresolve.scriptrunner.runner.ScriptRunnerImpl
@@ -18,16 +21,22 @@ import groovy.transform.Field
 @BaseScript CustomEndpointDelegate delegate
 
 def issueManager = ComponentAccessor.getIssueManager()
+def userManager = ComponentAccessor.getUserManager()
 def groupManager = ComponentAccessor.getGroupManager()
+def jqlQueryParser = ComponentAccessor.getComponent(JqlQueryParser)
+def searchService = ComponentAccessor.getComponent(SearchService)
 def userSearchService = ComponentAccessor.getUserSearchService()
 def avatarService = ComponentAccessor.getAvatarService()
 def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationProperties)
 def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
 
+def API_USERNAME = '123'
+def API_PASS = '123'
+
 @Field Collection departmentsList = ['department1', 'department2', 'department2']
-def managerGroup = 'managers_groups'
-def directorGroup = 'directors_group'
-def president = 'username'
+def managerGroup = 'managers-group'
+def directorGroup = 'director-group'
+def president = 'the guy'
 
 getDirector(httpMethod: "GET", groups: ['jira-api-users']) { MultivaluedMap queryParams, body, HttpServletRequest request ->
     def username = queryParams.getFirst('username') as String
@@ -84,7 +93,7 @@ getManager(httpMethod: "GET", groups: ['jira-api-users']) { MultivaluedMap query
     if (manager == null){ // if manager not found use director as manager
         def client = new HttpClient();
         def method = new GetMethod("${baseUrl}/rest/scriptrunner/latest/custom/getDirector?username=${queryParams.getFirst('username') as String}")
-        def credentials = new UsernamePasswordCredentials('jira.api', 'x4XHaTerJrNpAIlXvJ3JVgOYc4PYng4BJojgwzygvQLQbYFeSar5')
+        def credentials = new UsernamePasswordCredentials(API_USERNAME, API_PASS)
         client.getParams().setAuthenticationPreemptive(true)
         client.getState().setCredentials(AuthScope.ANY, credentials)
         client.executeMethod(method)
@@ -133,10 +142,10 @@ class User {
 }
 
 getActiveUsers(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, body ->
-    def accessToken = 'token'
+    def accessToken = 'dupa'
     def providedToken = queryParams.getFirst('accessToken') as String
     if (providedToken != accessToken){
-        log.error('wrong access token')
+        log.error("token ${providedToken} is not valid")
         return Response.status(400).build()
     }
     def loggedUser = ComponentAccessor.getJiraAuthenticationContext().getLoggedInUser()
@@ -147,4 +156,38 @@ getActiveUsers(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-use
         if(user.isActive())
             usersList.add(new User(id: user.name, text: user.displayName, imgSrc: avatarService.getAvatarURL(loggedUser, user) as String))
     return Response.ok(new JsonBuilder(usersList).toString()).build()
+}
+
+class Access {
+    String id
+    String text
+    String imgSrc
+}
+
+getPersonAccesses(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, body ->
+	def accessToken = 'dupa'
+    def providedToken = queryParams.getFirst('accessToken') as String
+    if (providedToken != accessToken){
+        log.error('token ${providedToken} is not valid')
+        return Response.status(400).build()
+    }
+    def users = (queryParams.getFirst('username') as String)
+    def usernames = users.split(',')
+    def user
+    def accessList = []
+    for (username in usernames){
+        user = userManager.getUserByName(username)
+        def query = jqlQueryParser.parseQuery("issuetype = 'Access' AND 'User' = $user.name AND resolution IS empty")
+        log.warn(query)
+        def results = (searchService.search(userManager.getUserByName('admin'), query, PagerFilter.getUnlimitedFilter())).getResults()
+        results.each { issue ->
+            issue.getIssueType().getAvatar()
+            if (usernames.size() > 1)
+            	accessList.add(new Access(id: "${issue.key}", text: "${issue.key} ${issue.summary} (${user.displayName})", imgSrc: issue.getIssueType().getIconUrl()))
+            else
+                accessList.add(new Access(id: "${issue.key}", text: "${issue.key} ${issue.summary}", imgSrc: issue.getIssueType().getIconUrl()))
+        }
+    }
+
+    return Response.ok(new JsonBuilder(accessList).toString()).build()
 }

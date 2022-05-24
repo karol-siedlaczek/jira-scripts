@@ -33,10 +33,10 @@ def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationPropertie
 def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
 
 closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams ->
-    def currIssue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)  
+    def currIssue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)
     def issue = issueManager.getIssueObject('ASSET-1')  // to load available options related to project
     def licenseTypeField = customFieldManager.getCustomFieldObject(11902) // License Type Custom Field
-    def licenseTypeFieldConfig = licenseTypeField.getRelevantConfig(issue)   
+    def licenseTypeFieldConfig = licenseTypeField.getRelevantConfig(issue)
     def licenseTypes = optionsManager.getOptions(licenseTypeFieldConfig)
     def licenseTypeOptions = ''
     for (licenseType in licenseTypes)
@@ -52,19 +52,19 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
           </header>
           <div class="aui-dialog2-content">
             <form class="aui" id='close-purchase-form'>
-              
+
               <div class="field-group">
                 <label for="create-asset-toggle">Create asset?</label>
 				<aui-toggle label="toggle button" id="create-asset-toggle"></aui-toggle>
               </div>
-              
+
               <div style="border-bottom: 1px solid #ddd; margin: 15px 0 15px 0"></div>
-              
+
               <div class="field-group" id="summary-field-group" style="display: none">
               	<label for="summary-field">Summary<span class="aui-icon icon-required">(required)</span></label>
     			<input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${currIssue.summary}" required>
               </div>
-              
+
               <div class="field-group" id="asset-type-field-group" style="display: none">
               		<label for='radio'>Asset type<span class="aui-icon icon-required">(required)</span></label>
               		<div class="radio">
@@ -76,60 +76,60 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
             			<label for="license-radio-field">License</label>
         			</div>
               </div>
-              
+
               <div class='field-group' id="user-field-group" style="display: none">
               	<label for="user-field">User</label>
                 <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user"/>
               </div>
-              
+
               <div class="field-group" id="software-field-group" style="display: none">
               	<label for="software-field">Software<span class="aui-icon icon-required"></span></label>
     			<input class="text medium-long-field" type="text" length="30" id="software-field" name="Software" placeholder="Select a component/s" multiple="" required/>
               </div>
-             
+
               <div class="field-group" id="license-type-field-group" style="display: none">
               	 <label for="license-type-field">License type<span class="aui-icon icon-required"></span></label>
                  <aui-select class="medium-long-field" id="license-type-field" name="License Type" placeholder="Select a license type" required="true">
                  	${licenseTypeOptions}
                  </aui-select>
               </div>
-              
+
               <div class="field-group" id="expire-time-field-group" style="display: none">
               	<label for="expire-time-field">Expire time<span class="aui-icon icon-required"></span></label>
                 <input class="aui-date-picker text medium-long-field" id="expire-time-field" name="Expire time" type="date" required/>
               </div>
-              
+
               <div class="field-group" id="service-tag-field-group" style="display: none">
               	<label for="service-tag-field">Service Tag<span class="aui-icon icon-required"></span></label>
     			<input class="text medium-long-field" type="text" id="service-tag-field" name="Service Tag" required/>
               </div>
-              
+
               <div class="field-group" id="model-field-group" style="display: none">
               	<label for="model-field">Model<span class="aui-icon icon-required"></span></label>
     			<input class="text medium-long-field" type="text" id="model-field" name="Model" required/>
               </div>
-              
+
               <div class="field-group" id="invoice-number-field-group" style="display: none">
               	<label for="invoice-number-field">Invoice number<span class="aui-icon icon-required"></span></label>
     			<input class="text medium-long-field" type="text" id="invoice-number-field" name="Invoice number" required/>
               </div>
-              
+
               <div class="field-group" id="cost-field-group">
                 <label for="cost-field">Cost [PLN]<span class="aui-icon icon-required">(required)</span></label>
     			<input class="text medium-long-field" id="cost-field" name="Cost" type="number" min="1" step="0.01" required/>
-              </div> 
-              
+              </div>
+
               <div class="field-group" id="description-field-group" style="display: none">
             	<label for="description-field">Description</label>
             	<textarea class="textarea medium-long-field" name="Description" id="description-field" placeholder="Your description here..."></textarea>
         	 </div>
-              
+
             </form>
             </div>
               <footer class="aui-dialog2-footer">
                 <div class="aui-dialog2-footer-actions">
-                	<input class="aui-button aui-button-primary submit" type="submit" value="Finish" id="create-button">
-                    <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>     
+                	<button class="aui-button aui-button-primary submit" type="submit" id="create-button">Finish</button>
+                    <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>
                 </div>
                 <div class="aui-dialog2-footer-hint">
               		<p id="create-asset-paragraph" style="display: none">Choose this option if you want to create an asset</p>
@@ -143,7 +143,7 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
 
 closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, String body, HttpServletRequest request ->
 	def transitionId = 151 // id of transition "Close"
-    def createAsset = queryParams.getFirst('createAsset') as Boolean
+    def createAsset = (queryParams.getFirst('createAsset') as String).toBoolean()
     def issue = issueManager.getIssueObject(queryParams.getFirst('issueKey') as String)
     def remoteUser = userManager.getUserByName(remoteUserManager.getRemoteUser(request)?.username as String)
     def message = ''

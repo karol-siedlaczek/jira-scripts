@@ -30,7 +30,7 @@ def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationPropertie
 def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
 
 closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams ->
-    def currIssue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)
+    def currIssue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)  
     def issue = issueManager.getIssueObject('ASSET-1')  // to load available options related to project
  	def dialog =
      """
@@ -43,40 +43,40 @@ closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-soft
           </header>
           <div class="aui-dialog2-content">
             <form class="aui" id='close-grant-access-form'>
-
+              
               <div class="field-group">
                 <label for="create-asset-toggle">Create asset?</label>
 				<aui-toggle label="toggle button" id="create-asset-toggle"></aui-toggle>
               </div>
-
+              
               <div style="border-bottom: 1px solid #ddd; margin: 15px 0 15px 0"></div>
-
+                
               <div class="field-group" id="summary-field-group" style="display: none">
               	<label for="summary-field">Summary<span class="aui-icon icon-required">(required)</span></label>
     			<input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${currIssue.summary}">
               </div>
-
+              
               <div class='field-group' id="user-field-group" style="display: none">
               	<label for="user-field">User/s<span class="aui-icon icon-required"></span></label>
                 <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user/s"></input>
               </div>
-
+              
               <div class='field-group' id="environment-field-group" style="display: none">
               	<label for="user-field">Environment/s<span class="aui-icon icon-required"></span></label>
                 <input class="text medium-long-field aui-select2" type="text" length="60" id="environment-field" name="Environment" placeholder="Select a environment/s"></input>
               </div>
-
+              
               <div class="field-group" id="description-field-group" style="display: none" style="display: none">
             	<label for="description-field">Description</label>
             	<textarea class="textarea medium-long-field" name="Description" id="description-field" placeholder="Describe the details of the above access if necessary"></textarea>
         	 </div>
-
+   
             </form>
             </div>
               <footer class="aui-dialog2-footer">
                 <div class="aui-dialog2-footer-actions">
-                	<input class="aui-button aui-button-primary submit" type="submit" value="Finish" id="create-button">
-                    <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>
+                	<button class="aui-button aui-button-primary submit" type="submit" id="create-button">Finish</button>
+                    <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>     
                 </div>
                 <div class="aui-dialog2-footer-hint">
               		<p id="create-asset-paragraph" style="display: none">Choose this option if you want to create an asset</p>
@@ -90,7 +90,7 @@ closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-soft
 
 closeGrantAccess(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, String body, HttpServletRequest request ->
 	def transitionId = 81 // id of transition "Close"
-    def createAsset = queryParams.getFirst('createAsset') as Boolean
+    def createAsset = (queryParams.getFirst('createAsset') as String).toBoolean()
     def issue = issueManager.getIssueObject(queryParams.getFirst('issueKey') as String)
     def remoteUser = userManager.getUserByName(remoteUserManager.getRemoteUser(request)?.username as String)
     def message = ''
@@ -120,13 +120,13 @@ closeGrantAccess(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-
                     mutableComponent.setDescription("${component.getDescription()} access")
                     component = projectComponentManager.update(mutableComponent)
                     log.warn("${component} already exists, only appended 'access' to description")
-                }
+                }   
                 newIssue.setComponent(newIssue.getComponents() + component)
             }
             issueManager.createIssueObject(remoteUser, newIssue)
             issueLinkManager.createIssueLink(issue.id, newIssue.id, 10003, null, remoteUser)
             message = message + "Asset <a href='${baseUrl}/browse/${newIssue.key}' target='_blank'>${newIssue.key}</a> has been created</br>"
-        }
+        }	
     	//has access to 10802
     }
     else {

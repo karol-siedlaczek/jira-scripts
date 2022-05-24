@@ -8,7 +8,7 @@
                 let licenseComponents
                 AJS.$.ajax({
                     url: '/rest/scriptrunner/latest/custom/getActiveUsers' +
-                         '?accessToken=' 	+ 'token',
+                         '?accessToken=' 	+ 'token1',
                     type: 'GET',
                     datatype: 'json',
                     async: false,
