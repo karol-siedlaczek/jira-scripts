@@ -4,15 +4,10 @@ def userManager = ComponentAccessor.getUserManager()
 def customFieldManager = ComponentAccessor.getCustomFieldManager()
 def commentManager = ComponentAccessor.getCommentManager()
 
-def USER_FIELD_ID = 123
-def PLACE_FIELD_ID = 123
-
-def userField = customFieldManager.getCustomFieldObject(USER_FIELD_ID)
-def placeField = customFieldManager.getCustomFieldObject(PLACE_FIELD_ID)
+def userField = customFieldManager.getCustomFieldObject(11701)
+def placeField = customFieldManager.getCustomFieldObject(11509)
 def adminUser = userManager.getUserByName('admin')
 
-def userFieldValue = issue.getCustomFieldValue(userField)['displayName']
-def placeFieldValue = issue.getCustomFieldValue(placeField)
 def assetName
 def comment
 
@@ -22,11 +17,12 @@ else
     assetName = 'Device'
 
 if (issue.status.name == 'On loan')
-    comment = "on loan in ${placeFieldValue}"
+    comment = "on loan in ${issue.getCustomFieldValue(placeField)}"
 else if(issue.status.name == 'Collocation')
-    comment = "placed in ${placeFieldValue}"
+    comment = "placed in ${issue.getCustomFieldValue(placeField)}"
 else  
-	comment = "assigned to ${userFieldValue}"
+	comment = "assigned to ${issue.getCustomFieldValue(userField)['displayName']}"
 
 comment = "${assetName} ${comment}"
-commentManager.create(issue, adminUser, comment, null, null, new Date(), null, false) //issue, user which commented, comment body, restricted group, restricted role, notifications
+log.warn("'${comment}' added to ${issue.key}")
+commentManager.create(issue, adminUser, comment, 'groupname', null, new Date(), null, false) //issue, user which commented, comment body, restricted group, restricted role, notifications
