@@ -1,6 +1,3 @@
-// Copyright 2022 Redge Technologies
-// Author: K. Siedlaczek
-
 import java.util.LinkedList
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
