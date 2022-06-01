@@ -23,8 +23,7 @@ import com.atlassian.sal.api.UrlMode
 closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams ->
     def issueManager = ComponentAccessor.getIssueManager()
 
-    def currIssue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)
-    def issue = issueManager.getIssueObject('ASSET-1')  // to load available options related to project
+    def issue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)
     def dialog =
             """
       <section role="dialog" id="close-grant-access-dialog" class="aui-layer aui-dialog2 aui-dialog2-medium" aria-hidden="true" data-aui-remove-on-hide="true">
@@ -46,7 +45,7 @@ closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-soft
                 
               <div class="field-group" id="summary-field-group" style="display: none">
               	<label for="summary-field">Summary<span class="aui-icon icon-required">(required)</span></label>
-    			<input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${currIssue.summary}">
+    			<input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${issue.summary}">
               </div>
               
               <div class='field-group' id="user-field-group" style="display: none">
@@ -59,7 +58,7 @@ closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-soft
                 <input class="text medium-long-field aui-select2" type="text" length="60" id="environment-field" name="Environment" placeholder="Select a environment/s"></input>
               </div>
               
-              <div class="field-group" id="description-field-group" style="display: none" style="display: none">
+              <div class="field-group" id="description-field-group" style="display: none">
             	<label for="description-field">Description</label>
             	<textarea class="textarea medium-long-field" name="Description" id="description-field" placeholder="Describe the details of the above access if necessary"></textarea>
         	 </div>
@@ -68,6 +67,7 @@ closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-soft
             </div>
               <footer class="aui-dialog2-footer">
                 <div class="aui-dialog2-footer-actions">
+                	<aui-spinner id="custom-dialog-spinner" size="small"></aui-spinner>
                 	<button class="aui-button aui-button-primary submit" type="submit" id="create-button">Finish</button>
                     <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>     
                 </div>

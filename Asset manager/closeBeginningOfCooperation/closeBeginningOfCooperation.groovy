@@ -1,3 +1,7 @@
+// Copyright 2022 Redge Technologies
+// Author: K. Siedlaczek
+
+import java.util.LinkedList
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.MultivaluedMap
@@ -12,7 +16,6 @@ import com.atlassian.jira.component.ComponentAccessor
 import com.atlassian.jira.config.IssueTypeManager
 import com.atlassian.jira.issue.util.DefaultIssueChangeHolder
 import com.atlassian.jira.issue.ModifiedValue
-
 import com.atlassian.jira.user.ApplicationUser
 import com.atlassian.jira.issue.MutableIssue
 import com.atlassian.jira.issue.Issue
@@ -20,8 +23,6 @@ import com.atlassian.jira.issue.IssueManager
 import com.atlassian.jira.issue.CustomFieldManager
 import com.atlassian.jira.issue.link.IssueLinkManager
 import com.atlassian.jira.issue.fields.CustomField
-import com.atlassian.jira.bc.issue.IssueService
-
 import com.atlassian.jira.project.Project
 import com.atlassian.jira.workflow.TransitionOptions
 import com.atlassian.sal.api.ApplicationProperties
@@ -67,6 +68,7 @@ closeBeginningOfCooperationDialog(httpMethod: 'GET', groups: ['jira-core-users',
             </div>
               <footer class="aui-dialog2-footer">
                 <div class="aui-dialog2-footer-actions">
+                	<aui-spinner id="custom-dialog-spinner" size="small" style="display: none"></aui-spinner>
                 	<input class="aui-button aui-button-primary submit" type="submit" value="Finish" id="create-button">
                     <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>     
                 </div>
@@ -75,25 +77,6 @@ closeBeginningOfCooperationDialog(httpMethod: 'GET', groups: ['jira-core-users',
                 </div>
               </footer>
         </section>
-        
-        <style>
-            .issue .aui-avatar {
-                margin-bottom: 3px;
-            }
-            .issue .aui-avatar-inner {
-                border-radius: 0!important;
-            }
-            #device-field-group input.aui-button {
-            	position: relative;
-                padding: 6px 26px 6px 26px;
-                bottom: 10px;
-                border: 1px solid var(--aui-form-field-border-color);
-                line-height: 1
-            }
-            #device-field-group .aui-avatar-inner{
-            	border-radius: 0!important;
-            }
-        </style>
       """
     Response.ok().type(MediaType.TEXT_HTML).entity(dialog.toString()).header('header', 'value').build()
 }
@@ -102,13 +85,11 @@ closeBeginningOfCooperationDialog(httpMethod: 'GET', groups: ['jira-core-users',
 closeBeginningOfCooperation(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, String body, HttpServletRequest request ->
     def projectManager = ComponentAccessor.getProjectManager()
     def issueManager = ComponentAccessor.getIssueManager()
-    def issueService = ComponentAccessor.getIssueService()
     def issueLinkManager = ComponentAccessor.getIssueLinkManager()
     def userManager = ComponentAccessor.getUserManager()
     def customFieldManager = ComponentAccessor.getCustomFieldManager()
     def remoteUserManager = ComponentAccessor.getOSGiComponentInstanceOfType(UserManager)
     def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationProperties)
-    def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
 
     def CLOSE_BEGINNING_OF_COOPERATION_TRANSITION_ID = 221
     def USER_FIELD = customFieldManager.getCustomFieldObject(11701)
@@ -117,17 +98,17 @@ closeBeginningOfCooperation(httpMethod: 'POST', groups: ['jira-core-users', 'jir
     def issue = issueManager.getIssueObject(queryParams.getFirst('issueKey') as String)
     def user = userManager.getUserByName(queryParams.getFirst('user') as String)
     def remoteUser = userManager.getUserByName(remoteUserManager.getRemoteUser(request)?.username as String)
-    def transitionOptions = new TransitionOptions.Builder().skipConditions().skipPermissions().skipValidators().build()
+    def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
     def message = ''
 
-    Issue personIssue = createPersonAsset(user, remoteUser, issue, ASSET_PROJECT, transitionOptions, USER_FIELD, issueManager, customFieldManager, issueLinkManager, issueService)
+    Issue personIssue = createPersonAsset(user, remoteUser, issue, ASSET_PROJECT, USER_FIELD, issueManager, customFieldManager, issueLinkManager)
     message = message + "Person <a href='${baseUrl}/browse/${personIssue.key}' target='_blank'>${personIssue.key}</a> has been created</br>"
     if (!(queryParams.getFirst('device') as String).isEmpty()) {
         //LinkedList<String> devices = new LinkedList<String>(Arrays.asList(queryParams.getFirst('device')))
         //for (device in devices){
         for (device in (queryParams.getFirst('device') as String).split(',')){
             def deviceIssue = issueManager.getIssueByCurrentKey(device)
-            assignPersonAssetToDeviceAsset(user, remoteUser, personIssue, deviceIssue, transitionOptions, USER_FIELD, customFieldManager, issueLinkManager, issueService)
+            assignPersonAssetToDeviceAsset(user, remoteUser, deviceIssue, USER_FIELD)
             message = message + "Device <a href='${baseUrl}/browse/${deviceIssue.key}' target='_blank'>${deviceIssue.key}</a> has been linked</br>"
         }
     }
@@ -135,13 +116,11 @@ closeBeginningOfCooperation(httpMethod: 'POST', groups: ['jira-core-users', 'jir
         //LinkedList<String> accesses = new LinkedList<String>(Arrays.asList(queryParams.getFirst('device')))
         //for (access in accesses){
         for (access in (queryParams.getFirst('access') as String).split(',')){
-            Issue accessIssue = createAccessAsset(user, remoteUser, personIssue, access, ASSET_PROJECT, transitionOptions, USER_FIELD, issueManager, customFieldManager, issueLinkManager, issueService)
+            Issue accessIssue = createAccessAsset(user, remoteUser, personIssue, access, ASSET_PROJECT, USER_FIELD, issueManager, customFieldManager, issueLinkManager)
             message = message + "Access <a href='${baseUrl}/browse/${accessIssue.key}' target='_blank'>${accessIssue.key}</a> has been created</br>"
         }
     }
-    def transitionValidationResult = issueService.validateTransition(remoteUser, issue.id, CLOSE_BEGINNING_OF_COOPERATION_TRANSITION_ID, new IssueInputParametersImpl(), transitionOptions)
-    if (transitionValidationResult.isValid())
-        issueService.transition(remoteUser, transitionValidationResult)
+    transistIssue(remoteUser, issue, CLOSE_BEGINNING_OF_COOPERATION_TRANSITION_ID) //close curr issue
     UserMessageUtil.success(message as String)
     return Response.ok([success: message]).build()
 }
@@ -150,12 +129,10 @@ Issue createPersonAsset(ApplicationUser user, // creates issue with issuetype Pe
                         ApplicationUser remoteUser,
                         MutableIssue issue,
                         Project assetProject,
-                        TransitionOptions transitionOptions,
                         CustomField userField,
                         IssueManager issueManager,
                         CustomFieldManager customFieldManager,
-                        IssueLinkManager issueLinkManager,
-                        IssueService issueService){
+                        IssueLinkManager issueLinkManager){
     def issueFactory = ComponentAccessor.getIssueFactory()
     def issueTypeManager = ComponentAccessor.getComponent(IssueTypeManager)
 
@@ -169,7 +146,7 @@ Issue createPersonAsset(ApplicationUser user, // creates issue with issuetype Pe
     def SHARING_IMAGE_IN_INTRANET_FIELD = customFieldManager.getCustomFieldObject(11707)
     def SHARING_PRIVATE_PHONE_NUMBER_FIELD = customFieldManager.getCustomFieldObject(11708)
     def RELATES_RELATION_ID = 10003 as Long
-    def PERSON_ACTIVE_TRANSITION_ID = 11
+    //def PERSON_ACTIVE_TRANSITION_ID = 11
 
     def newIssue = issueFactory.getIssue()
     newIssue.setSummary(user.displayName)
@@ -195,21 +172,14 @@ Issue createPersonAsset(ApplicationUser user, // creates issue with issuetype Pe
 
 void assignPersonAssetToDeviceAsset(ApplicationUser user,
                                     ApplicationUser remoteUser,
-                                    Issue personIssue,
                                     MutableIssue deviceIssue,
-                                    TransitionOptions transitionOptions,
-                                    CustomField userField,
-                                    CustomFieldManager customFieldManager,
-                                    IssueLinkManager issueLinkManager,
-                                    IssueService issueService){
+                                    CustomField userField){
     def DEVICE_IN_USED_TRANSITION_ID = 81
     //def DEVICE_RELATION_ID = 10800 as Long
 
     userField.updateValue(null, deviceIssue, new ModifiedValue(deviceIssue.getCustomFieldValue(userField), user), new DefaultIssueChangeHolder())
     //issueLinkManager.createIssueLink(personIssue.id, deviceIssue.id, DEVICE_RELATION_ID, null, remoteUser)
-    def transitionValidationResult = issueService.validateTransition(remoteUser, deviceIssue.id, DEVICE_IN_USED_TRANSITION_ID, new IssueInputParametersImpl(), transitionOptions)
-    if (transitionValidationResult.isValid())
-        issueService.transition(remoteUser, transitionValidationResult)
+    transistIssue(remoteUser, deviceIssue, DEVICE_IN_USED_TRANSITION_ID) // other operations will be executed in post workflow functions
 }
 
 Issue createAccessAsset(ApplicationUser user,
@@ -217,19 +187,15 @@ Issue createAccessAsset(ApplicationUser user,
                         Issue personIssue,
                         String access,
                         Project assetProject,
-                        TransitionOptions transitionOptions,
                         CustomField userField,
-                        IssueManager issueManager,
-                        CustomFieldManager customFieldManager,
-                        IssueLinkManager issueLinkManager,
-                        IssueService issueService) {
+                        IssueManager issueManager) {
     def issueTypeManager = ComponentAccessor.getComponent(IssueTypeManager)
     def issueFactory = ComponentAccessor.getIssueFactory()
     def projectComponentManager = ComponentAccessor.getProjectComponentManager()
 
     def ACCESS_ISSUE_TYPE = issueTypeManager.getIssueType('11301')
     //def ACCESS_RELATION_ID = 10802 as Long
-    def ACCESS_ACTIVE_TRANSITION_ID = 41
+    //def ACCESS_ACTIVE_TRANSITION_ID = 41
 
     def newIssue = issueFactory.getIssue()
     def component = projectComponentManager.findByComponentName(assetProject.id, access)
@@ -255,4 +221,15 @@ Issue createAccessAsset(ApplicationUser user,
     //if (transitionValidationResult.isValid())
     //	issueService.transition(remoteUser, transitionValidationResult)
     return accessIssue
+}
+
+void transistIssue(ApplicationUser user,
+                   Issue issue,
+                   Integer transitionId) {
+    def issueService = ComponentAccessor.getIssueService()
+    def transitionOptions = new TransitionOptions.Builder().skipConditions().skipPermissions().skipValidators().build()
+
+    def transitionValidationResult = issueService.validateTransition(user, issue.id, transitionId, new IssueInputParametersImpl(), transitionOptions)
+    if (transitionValidationResult.isValid())
+        issueService.transition(user, transitionValidationResult)
 }

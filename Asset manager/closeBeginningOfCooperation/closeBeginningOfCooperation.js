@@ -8,17 +8,19 @@
                 let accessesList
                 AJS.$.ajax({
                     url: '/rest/scriptrunner/latest/custom/getActiveUsers' +
-                        '?accessToken=' 	+ 'token',
+                        '?accessToken=' + '',
                     type: 'GET',
                     datatype: 'json',
                     async: false,
-                    success: function(data){ usersList = data }
+                    success: function (data) {
+                        usersList = data
+                    }
                 })
                 makeFieldPicker(AJS.$("#user-field"), usersList, 'small', 'user');
 
                 AJS.$.ajax({
                     url: '/rest/scriptrunner/latest/custom/getDevicesOnStock' +
-                        '?accessToken=' 	+ 'token',
+                        '?accessToken=' 	+ '',
                     type: 'GET',
                     datatype: 'json',
                     async: false,
@@ -60,6 +62,7 @@
                     AJS.dialog2(event.target).remove();
                 });
                 $(event.target).find("#create-button").click(function() {
+                    spinner(event, 'show')
                     let userSelected = $(event.target).find('#user-field').select2('data')
                     if (userSelected) {
                         AJS.$.ajax({
@@ -97,6 +100,7 @@
                                         AJS.dialog2(event.target).remove();
                                     },
                                     error: function() {
+                                        spinner(event, 'hide')
                                         AJS.flag({
                                             type: 'error',
                                             body: 'Necessary endpoint could not be correctly accessed. Check console logs or contact your Jira Administrator',
@@ -106,6 +110,7 @@
                                 })
                             },
                             error: function(response) {
+                                spinner(event, 'hide')
                                 AJS.flag({
                                     type: 'error',
                                     body: 'Person <strong>' + response.responseText + '</strong> for selected user already exists.' +
@@ -118,6 +123,7 @@
                         })
                     }
                     else {
+                        spinner(event, 'hide')
                         AJS.flag({
                             type: 'error',
                             body: 'Fill user field',
@@ -128,16 +134,8 @@
             }
         });
     });
-    function formatWithAvatar(opt_data, type) {
-        var personName = opt_data.person && opt_data.person.displayName ? opt_data.person.displayName : opt_data.person && opt_data.person.name ? opt_data.person.name : opt_data.unknownName;
-        return '<span class="' + opt_data.type + '">' + aui.avatar.avatar({
-            size: opt_data.size,
-            avatarImageUrl: opt_data.person.avatarUrl
-        }) + AJS.escapeHtml(personName) + '</span>';
-    }
-
-    function makeFieldPicker($el, usersList, imgSize, type, multiple) {
-        $el.auiSelect2({
+    function makeFieldPicker($elem, usersList, imgSize, type, multiple) {
+        $elem.auiSelect2({
             hasAvatar: true,
             formatResult: function (result) {
                 return formatWithAvatar({
@@ -161,9 +159,9 @@
                 });
             },
             query: function (query) {
-                var results = [];
-                for (var i = 0, ii = usersList.length; i < ii; i++) {
-                    var result = usersList[i];
+                let results = [];
+                for (let i = 0, ii = usersList.length; i < ii; i++) {
+                    let result = usersList[i];
                     if (result.text.toLowerCase().indexOf(query.term.toLowerCase()) > -1) {
                         results.push(result);
                     }
@@ -172,5 +170,26 @@
             },
             multiple: multiple
         });
+    }
+
+    function formatWithAvatar(opt_data) {
+        let personName = opt_data.person && opt_data.person.displayName ? opt_data.person.displayName : opt_data.person && opt_data.person.name ? opt_data.person.name : opt_data.unknownName;
+        return '<span class="' + opt_data.type + '">' + aui.avatar.avatar({
+            size: opt_data.size,
+            avatarImageUrl: opt_data.person.avatarUrl
+        }) + AJS.escapeHtml(personName) + '</span>';
+    }
+
+    async function spinner(event, oper) {
+        switch (oper){
+            case 'show':
+                $(event.target).find('#custom-dialog-spinner').css('display', 'inline')
+                break
+            case 'hide':
+                $(event.target).find('#custom-dialog-spinner').css('display', 'none')
+                break
+            default:
+                console.error('not found oper')
+        }
     }
 })(AJS.$);

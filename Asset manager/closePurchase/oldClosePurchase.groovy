@@ -17,30 +17,26 @@ import com.atlassian.sal.api.user.UserManager
 import com.atlassian.jira.bc.project.component.MutableProjectComponent
 import com.atlassian.sal.api.UrlMode
 
-import com.atlassian.jira.issue.util.DefaultIssueChangeHolder
-import com.atlassian.jira.issue.ModifiedValue
-import com.atlassian.jira.user.ApplicationUser
-import com.atlassian.jira.issue.MutableIssue
-import com.atlassian.jira.issue.Issue
-import com.atlassian.jira.issue.IssueManager
-import com.atlassian.jira.issue.CustomFieldManager
-import com.atlassian.jira.issue.link.IssueLinkManager
-import com.atlassian.jira.issue.fields.CustomField
-import com.atlassian.jira.project.Project
-import com.atlassian.jira.workflow.TransitionOptions
-
 @BaseScript CustomEndpointDelegate delegate
 
+def issueManager = ComponentAccessor.getIssueManager()
+def projectManager = ComponentAccessor.getProjectManager()
+def projectComponentManager = ComponentAccessor.getProjectComponentManager()
+def remoteUserManager = ComponentAccessor.getOSGiComponentInstanceOfType(UserManager)
+def userManager = ComponentAccessor.getUserManager()
+def issueService = ComponentAccessor.getIssueService()
+def customFieldManager = ComponentAccessor.getCustomFieldManager()
+def optionsManager = ComponentAccessor.getOptionsManager()
+def issueFactory = ComponentAccessor.getIssueFactory()
+def issueLinkManager = ComponentAccessor.getIssueLinkManager()
+def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationProperties)
+def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
+
 closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams ->
-    def issueManager = ComponentAccessor.getIssueManager()
-    def customFieldManager = ComponentAccessor.getCustomFieldManager()
-    def optionsManager = ComponentAccessor.getOptionsManager()
-
-    def LICENSE_TYPE_FIELD = customFieldManager.getCustomFieldObject(11902)
-
     def currIssue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)
     def issue = issueManager.getIssueObject('ASSET-1')  // to load available options related to project
-    def licenseTypeFieldConfig = LICENSE_TYPE_FIELD.getRelevantConfig(issue)
+    def licenseTypeField = customFieldManager.getCustomFieldObject(11902) // License Type Custom Field
+    def licenseTypeFieldConfig = licenseTypeField.getRelevantConfig(issue)
     def licenseTypes = optionsManager.getOptions(licenseTypeFieldConfig)
     def licenseTypeOptions = ''
     for (licenseType in licenseTypes)
@@ -147,117 +143,83 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
 }
 
 closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, String body, HttpServletRequest request ->
-    def issueManager = ComponentAccessor.getIssueManager()
-    def userManager = ComponentAccessor.getUserManager()
-    def remoteUserManager = ComponentAccessor.getOSGiComponentInstanceOfType(UserManager)
-    def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationProperties)
-
-    def CLOSE_PURCHASE_TRANSITION_ID = 151 // id of transition "Close"
-
+    def transitionId = 151 // id of transition "Close"
     def createAsset = (queryParams.getFirst('createAsset') as String).toBoolean()
     def issue = issueManager.getIssueObject(queryParams.getFirst('issueKey') as String)
     def remoteUser = userManager.getUserByName(remoteUserManager.getRemoteUser(request)?.username as String)
-    def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
     def message = ''
-
     if (createAsset) {
-        def user = userManager.getUserByName(queryParams.getFirst('user') as String)
-        //Issue assetIssue = createAsset(user, remoteUser, issue, queryParams, issueManager)
-        //message = "Asset <a href='${baseUrl}/browse/${assetIssue.key}' target='_blank'>${assetIssue.key}</a> has been created and current issue has been closed</br>"
+        def summaryParam = queryParams.getFirst('summary') as String
+        def descriptionParam = queryParams.getFirst('description') as String
+        def assetTypeParam = queryParams.getFirst('assetType')
+        def userParam = queryParams.getFirst('user') as String
+        def newIssue = issueFactory.getIssue()
+        def assetProject = projectManager.getProjectByCurrentKey('ASSET')
+        def userField = customFieldManager.getCustomFieldObject(11701)
+        newIssue.setSummary(summaryParam)
+        newIssue.setDescription(descriptionParam)
+        newIssue.setProjectObject(assetProject)
+        newIssue.reporter = remoteUser // user whose triggered dialog
+        if (assetTypeParam == 'Device'){
+            def serviceTagParam = queryParams.getFirst('serviceTag') as String
+            def modelParam = queryParams.getFirst('model') as String
+            def invoiceNumberParam = queryParams.getFirst('invoiceNumber') as String
+            def serviceTagField = customFieldManager.getCustomFieldObject(11709)
+            def modelField = customFieldManager.getCustomFieldObject(11503)
+            def invoiceNumberField = customFieldManager.getCustomFieldObject(11900)
+            newIssue.issueTypeId = 11201 // 'Device'
+            newIssue.setCustomFieldValue(serviceTagField, serviceTagParam)
+            newIssue.setCustomFieldValue(modelField, modelParam)
+            newIssue.setCustomFieldValue(invoiceNumberField, invoiceNumberParam)
+            newIssue.setCustomFieldValue(userField, userManager.getUserByName(userParam))
+        }
+        else {
+            def softwareParam = queryParams.getFirst('software') as String
+            def licenseTypeParam = queryParams.getFirst('licenseType') as String
+            def expireTimeParam
+            def licenseTypeField = customFieldManager.getCustomFieldObject(11902)
+            def expireTimeField = customFieldManager.getCustomFieldObject(11712)
+            if (queryParams.getFirst('expireTime') != '')
+                expireTimeParam = Timestamp.valueOf("${queryParams.getFirst('expireTime')} 00:00:00.000")
+            for (software in softwareParam.split(',')){
+                log.warn(software)
+                def component = projectComponentManager.findByComponentName(assetProject.id, software)
+                if (!component){
+                    component = projectComponentManager.create(software, 'license', null, 1, assetProject.id)
+                    log.warn("component ${component['name']} added to component's list in ${assetProject.key}")
+                }
+                else if (!(component.getDescription()).contains('license')){ // add to desc string to declare component as access
+                    def mutableComponent = MutableProjectComponent.copy(component)
+                    mutableComponent.setDescription("${component.getDescription()} license")
+                    component = projectComponentManager.update(mutableComponent)
+                    log.warn("component ${component['name']} already exists, only appended 'license' to description")
+                }
+                newIssue.setComponent(newIssue.getComponents() + component)
+            }
+            def availableLicenseTypes = optionsManager.getOptions(licenseTypeField.getRelevantConfig(newIssue))
+            def licenseTypeValue = availableLicenseTypes.find { it.value == licenseTypeParam }
+            newIssue.setCustomFieldValue(licenseTypeField, licenseTypeValue)
+            newIssue.setCustomFieldValue(expireTimeField, expireTimeParam)
+            newIssue.setCustomFieldValue(userField, userManager.getUserByName(userParam))
+            newIssue.issueTypeId = 11202
+        }
+        issueManager.createIssueObject(remoteUser, newIssue)
+        issueLinkManager.createIssueLink(issue.id, newIssue.id, 10003, null, remoteUser)
+        message = "Asset <a href='${baseUrl}/browse/${newIssue.key}' target='_blank'>${newIssue.key}</a> has been created and current issue has been closed</br>"
     }
     else {
-        updateCostField(issue, queryParams.getFirst('cost') as Double)
+        def costField = customFieldManager.getCustomFieldObject(11901)
+        costField.updateValue(null, issue, new ModifiedValue(issue.getCustomFieldValue(costField), queryParams.getFirst('cost') as Double), new DefaultIssueChangeHolder()) //update field
         message = "Issue <a href='${baseUrl}/browse/${issue.key}' target='_blank'>${issue.key}</a> has been closed</br>"
     }
-    transistIssue(remoteUser, issue, CLOSE_PURCHASE_TRANSITION_ID) //close curr issue
+    def transitionOptions = new TransitionOptions.Builder()
+            .skipConditions()
+            .skipPermissions()
+            .skipValidators()
+            .build()
+    def transitionValidationResult = issueService.validateTransition(remoteUser, issue.id, transitionId, new IssueInputParametersImpl(), transitionOptions)
+    if(transitionValidationResult.isValid()) // if this transition is valid, issue it
+        issueService.transition(remoteUser, transitionValidationResult)
     UserMessageUtil.success(message as String)
     return Response.ok([success: message]).build()
-}
-
-Issue createAsset(ApplicationUser user,
-                  ApplicationUser remoteUser,
-                  MutableIssue issue,
-                  MultivaluedMap queryParams,
-                  IssueManager issueManager){
-    /*def projectManager = ComponentAccessor.getProjectManager()
-    def projectComponentManager = ComponentAccessor.getProjectComponentManager()
-    def issueService = ComponentAccessor.getIssueService()
-    def customFieldManager = ComponentAccessor.getCustomFieldManager()
-    def issueFactory = ComponentAccessor.getIssueFactory()
-    def issueLinkManager = ComponentAccessor.getIssueLinkManager()
-    def optionsManager = ComponentAccessor.getOptionsManager()*/
-
-    /*def summaryParam = queryParams.getFirst('summary') as String
-    def descriptionParam = queryParams.getFirst('description') as String
-    def assetTypeParam = queryParams.getFirst('assetType')
-    def userParam = queryParams.getFirst('user') as String
-    def newIssue = issueFactory.getIssue()
-    def assetProject = projectManager.getProjectByCurrentKey('ASSET')
-    def userField = customFieldManager.getCustomFieldObject(11701)
-    newIssue.setSummary(summaryParam)
-    newIssue.setDescription(descriptionParam)
-    newIssue.setProjectObject(assetProject)
-    newIssue.reporter = remoteUser // user whose triggered dialog
-    if (assetTypeParam == 'Device'){
-        def serviceTagParam = queryParams.getFirst('serviceTag') as String
-        def modelParam = queryParams.getFirst('model') as String
-        def invoiceNumberParam = queryParams.getFirst('invoiceNumber') as String
-        def serviceTagField = customFieldManager.getCustomFieldObject(11709)
-        def modelField = customFieldManager.getCustomFieldObject(11503)
-        def invoiceNumberField = customFieldManager.getCustomFieldObject(11900)
-        newIssue.issueTypeId = 11201 // 'Device'
-        newIssue.setCustomFieldValue(serviceTagField, serviceTagParam)
-        newIssue.setCustomFieldValue(modelField, modelParam)
-        newIssue.setCustomFieldValue(invoiceNumberField, invoiceNumberParam)
-        newIssue.setCustomFieldValue(userField, user)
-    }
-    else if (assetTypeParam == 'License') {
-        def softwareParam = queryParams.getFirst('software') as String
-        def licenseTypeParam = queryParams.getFirst('licenseType') as String
-        def expireTimeParam
-        def licenseTypeField = customFieldManager.getCustomFieldObject(11902)
-        def expireTimeField = customFieldManager.getCustomFieldObject(11712)
-        if (queryParams.getFirst('expireTime') != '')
-            expireTimeParam = Timestamp.valueOf("${queryParams.getFirst('expireTime')} 00:00:00.000")
-        for (software in softwareParam.split(',')){
-            log.warn(software)
-            def component = projectComponentManager.findByComponentName(assetProject.id, software)
-            if (!component){
-                component = projectComponentManager.create(software, 'license', null, 1, assetProject.id)
-                log.warn("component ${component['name']} added to component's list in ${assetProject.key}")
-            }
-            else if (!(component.getDescription()).contains('license')){ // add to desc string to declare component as access
-                def mutableComponent = MutableProjectComponent.copy(component)
-                mutableComponent.setDescription("${component.getDescription()} license")
-                component = projectComponentManager.update(mutableComponent)
-                log.warn("component ${component['name']} already exists, only appended 'license' to description")
-            }
-            newIssue.setComponent(newIssue.getComponents() + component)
-        }
-        def availableLicenseTypes = optionsManager.getOptions(licenseTypeField.getRelevantConfig(newIssue))
-        def licenseTypeValue = availableLicenseTypes.find { it.value == licenseTypeParam }
-        newIssue.setCustomFieldValue(licenseTypeField, licenseTypeValue)
-        newIssue.setCustomFieldValue(expireTimeField, expireTimeParam)
-        newIssue.setCustomFieldValue(userField, user)
-        newIssue.issueTypeId = 11202
-    }
-    Issue assetIssue = issueManager.createIssueObject(remoteUser, newIssue)
-    issueLinkManager.createIssueLink(issue.id, newIssue.id, 10003, null, remoteUser)*/
-    return issueManager.getIssueByCurrentKey('ASSET-1')
-}
-
-void updateCostField(Issue issue, Double costValue){
-    def customFieldManager = ComponentAccessor.getCustomFieldManager()
-
-    def COST_FIELD = customFieldManager.getCustomFieldObject(11901)
-    COST_FIELD.updateValue(null, issue, new ModifiedValue(issue.getCustomFieldValue(COST_FIELD), costValue), new DefaultIssueChangeHolder()) //update field
-}
-
-void transistIssue(ApplicationUser user, Issue issue, Integer transitionId) {
-    def issueService = ComponentAccessor.getIssueService()
-    def transitionOptions = new TransitionOptions.Builder().skipConditions().skipPermissions().skipValidators().build()
-
-    def transitionValidationResult = issueService.validateTransition(user, issue.id, transitionId, new IssueInputParametersImpl(), transitionOptions)
-    if (transitionValidationResult.isValid())
-        issueService.transition(user, transitionValidationResult)
 }

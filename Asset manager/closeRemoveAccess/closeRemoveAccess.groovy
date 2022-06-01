@@ -53,6 +53,7 @@ closeRemoveAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-sof
             </div>
               <footer class="aui-dialog2-footer">
                 <div class="aui-dialog2-footer-actions">
+                	<aui-spinner id="custom-dialog-spinner" size="small" style="display: none"></aui-spinner>
                 	<input class="aui-button aui-button-primary submit" type="submit" value="Finish" id="create-button">
                     <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>
                 </div>
@@ -61,22 +62,6 @@ closeRemoveAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-sof
                 </div>
               </footer>
         </section>
-
-        <style>
-            .issue .aui-avatar {
-                margin-bottom: 3px;
-            }
-            .issue .aui-avatar-inner {
-                border-radius: 0!important;
-            }
-            #user-field-group input.aui-button {
-            	position: relative;
-                padding: 6px 26px 6px 26px;
-                bottom: 10px;
-                border: 1px solid var(--aui-form-field-border-color);
-                line-height: 1
-            }
-        </style>
       """
     Response.ok().type(MediaType.TEXT_HTML).entity(dialog.toString()).header('header', 'value').build()
 }
