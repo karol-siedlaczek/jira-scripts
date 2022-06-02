@@ -31,50 +31,45 @@ import com.atlassian.sal.api.UrlMode
 closeBeginningOfCooperationDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams ->
     def dialog =
             """
-      <section role="dialog" id="close-beginning-of-cooperation-dialog" class="aui-layer aui-dialog2 aui-dialog2-medium" aria-hidden="true" data-aui-remove-on-hide="true">
-          <header class="aui-dialog2-header">
-            <h2 class="aui-dialog2-header-main">Close Beginning of cooperation</h2>
-            <a class="aui-dialog2-header-close">
-              <span class="aui-icon aui-icon-small aui-iconfont-close-dialog" id="close-button">Close</span>
-            </a>
-          </header>
-          <div class="aui-dialog2-content">
-            <form class="aui" id='close-beginning-of-cooperation-form'>
-              
-              <div class='field-group' id="user-field-group">
-              	<label for="user-field">User<span class="aui-icon icon-required"></span></label>
-                <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user"></input>
-              </div>
-              
-              <div class='field-group' id="access-field-group">
-              	<label for="access-field">Access/s</label>
-                <input class="text medium-long-field aui-select2" type="text" length="60" id="access-field" name="Access" placeholder="Select a access/s"></input>
-              </div>
-              
-              <div class='field-group' id="device-field-group">
-              	<label for="device-field">Device/s</label>
-                <input class="text long-field aui-select2" type="text" length="60" id="device-field" name="Device" placeholder="Select a device/s from stock"></input>
-              </div>
-   			  
-              <div class="field-group" id="description-field-group">
-            	<label for="description-field">Description</label>
-            	<textarea class="textarea long-field" name="Description" id="description-field" placeholder="Description of Person asset"></textarea>
-        	 </div>
-             
-            </form>
-            </div>
-              <footer class="aui-dialog2-footer">
-                <div class="aui-dialog2-footer-actions">
-                	<aui-spinner id="custom-dialog-spinner" size="small" style="display: none"></aui-spinner>
-                	<input class="aui-button aui-button-primary submit" type="submit" value="Finish" id="create-button">
-                    <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>     
-                </div>
-                <div class="aui-dialog2-footer-hint">
-              		<p>Test</p>
-                </div>
-              </footer>
-        </section>
-      """
+  <section role="dialog" id="close-beginning-of-cooperation-dialog" class="aui-layer aui-dialog2 aui-dialog2-medium" aria-hidden="true" data-aui-remove-on-hide="true">
+    <header class="aui-dialog2-header">
+      <h2 class="aui-dialog2-header-main">Close Beginning of cooperation</h2>
+      <a class="aui-dialog2-header-close">
+        <span class="aui-icon aui-icon-small aui-iconfont-close-dialog" id="close-button">Close</span>
+      </a>
+    </header>
+    <div class="aui-dialog2-content">
+      <form class="aui" id='close-beginning-of-cooperation-form'>
+        <div class='field-group' id="user-field-group">
+          <label for="user-field">User<span class="aui-icon icon-required"></span></label>
+          <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user"></input>
+        </div>
+        <div class='field-group' id="access-field-group">
+          <label for="access-field">Access/s</label>
+          <input class="text medium-long-field aui-select2" type="text" length="60" id="access-field" name="Access" placeholder="Select a access/s"></input>
+        </div>
+        <div class='field-group' id="device-field-group">
+          <label for="device-field">Device/s</label>
+          <input class="text long-field aui-select2" type="text" length="60" id="device-field" name="Device" placeholder="Select a device/s from stock"></input>
+        </div> 
+        <div class="field-group" id="description-field-group">
+          <label for="description-field">Description</label>
+          <textarea class="textarea long-field" name="Description" id="description-field" placeholder="Description of Person asset"></textarea>
+        </div>
+      </form>
+    </div>
+    <footer class="aui-dialog2-footer">
+      <div class="aui-dialog2-footer-actions">
+        <aui-spinner id="custom-dialog-spinner" size="small" style="display: none"></aui-spinner>
+        <input class="aui-button aui-button-primary submit" type="submit" value="Finish" id="create-button">
+          <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>     
+      </div>
+      <div class="aui-dialog2-footer-hint">
+        <p>Test</p>
+      </div>
+    </footer>
+  </section>
+  """
     Response.ok().type(MediaType.TEXT_HTML).entity(dialog.toString()).header('header', 'value').build()
 }
 
@@ -105,7 +100,7 @@ closeBeginningOfCooperation(httpMethod: 'POST', groups: ['jira-core-users', 'jir
         //for (device in devices){
         for (device in (queryParams.getFirst('device') as String).split(',')){
             def deviceIssue = issueManager.getIssueByCurrentKey(device)
-            assignPersonAssetToDeviceAsset(user, remoteUser, deviceIssue, USER_FIELD)
+            assignDeviceAssetToPersonAsset(user, remoteUser, personIssue, deviceIssue, USER_FIELD, customFieldManager, issueLinkManager)
             message = message + "Device <a href='${baseUrl}/browse/${deviceIssue.key}' target='_blank'>${deviceIssue.key}</a> has been linked</br>"
         }
     }
@@ -143,7 +138,7 @@ Issue createPersonAsset(ApplicationUser user, // creates issue with issuetype Pe
     def SHARING_IMAGE_IN_INTRANET_FIELD = customFieldManager.getCustomFieldObject(11707)
     def SHARING_PRIVATE_PHONE_NUMBER_FIELD = customFieldManager.getCustomFieldObject(11708)
     def RELATES_RELATION_ID = 10003 as Long
-    //def PERSON_ACTIVE_TRANSITION_ID = 11
+    def PERSON_ACTIVE_TRANSITION_ID = 11
 
     def newIssue = issueFactory.getIssue()
     newIssue.setSummary(user.displayName)
@@ -167,16 +162,19 @@ Issue createPersonAsset(ApplicationUser user, // creates issue with issuetype Pe
     return personIssue
 }
 
-void assignPersonAssetToDeviceAsset(ApplicationUser user,
+void assignDeviceAssetToPersonAsset(ApplicationUser user,
                                     ApplicationUser remoteUser,
+                                    Issue personIssue,
                                     MutableIssue deviceIssue,
-                                    CustomField userField){
+                                    CustomField userField,
+                                    CustomFieldManager customFieldManager,
+                                    IssueLinkManager issueLinkManager){
     def DEVICE_IN_USED_TRANSITION_ID = 81
     //def DEVICE_RELATION_ID = 10800 as Long
 
     userField.updateValue(null, deviceIssue, new ModifiedValue(deviceIssue.getCustomFieldValue(userField), user), new DefaultIssueChangeHolder())
     //issueLinkManager.createIssueLink(personIssue.id, deviceIssue.id, DEVICE_RELATION_ID, null, remoteUser)
-    transistIssue(remoteUser, deviceIssue, DEVICE_IN_USED_TRANSITION_ID) // other operations will be executed in post workflow functions
+    transistIssue(remoteUser, deviceIssue, DEVICE_IN_USED_TRANSITION_ID)
 }
 
 Issue createAccessAsset(ApplicationUser user,
@@ -185,7 +183,9 @@ Issue createAccessAsset(ApplicationUser user,
                         String access,
                         Project assetProject,
                         CustomField userField,
-                        IssueManager issueManager) {
+                        IssueManager issueManager,
+                        CustomFieldManager customFieldManager,
+                        IssueLinkManager issueLinkManager) {
     def issueTypeManager = ComponentAccessor.getComponent(IssueTypeManager)
     def issueFactory = ComponentAccessor.getIssueFactory()
     def projectComponentManager = ComponentAccessor.getProjectComponentManager()
@@ -214,9 +214,7 @@ Issue createAccessAsset(ApplicationUser user,
     newIssue.setComponent(newIssue.getComponents() + component)
     Issue accessIssue = issueManager.createIssueObject(remoteUser, newIssue)
     //issueLinkManager.createIssueLink(personIssue.id, accessIssue.id, ACCESS_RELATION_ID, null, remoteUser)
-    //def transitionValidationResult = issueService.validateTransition(remoteUser, accessIssue.id, ACCESS_ACTIVE_TRANSITION_ID, new IssueInputParametersImpl(), transitionOptions)
-    //if (transitionValidationResult.isValid())
-    //	issueService.transition(remoteUser, transitionValidationResult)
+    //transistIssue(remoteUser, accessIssue, ACCESS_ACTIVE_TRANSITION_ID)
     return accessIssue
 }
 

@@ -2,48 +2,20 @@
     $(function() {
         AJS.dialog2.on('show', function(event) {
             if (event.target.id === 'close-purchase-dialog') {
-                const expireTimeField = $(event.target).find('#expire-time-field')[0]
-                const controller = new AJS.DatePicker(expireTimeField, {'overrideBrowserDefault': true})
-                let usersList
-                let licenseComponents
-                AJS.$.ajax({
-                    url: '/rest/scriptrunner/latest/custom/getActiveUsers' +
-                         '?accessToken=' 	+ 'token1',
-                    type: 'GET',
-                    datatype: 'json',
-                    async: false,
-                    success: function(data){ usersList = data }
-                })
-                AJS.$(".aui-select2 select").auiSelect2()
-                makeUserPicker(AJS.$("#user-field"), usersList);
-                AJS.$.ajax({
-                    url: '/rest/scriptrunner/latest/custom/getAssetComponents?type=license',
-                    type: 'GET',
-                    datatype: 'json',
-                    async: false,
-                    success: function(data){licenseComponents = data}
-                })
-                AJS.$("#software-field").auiSelect2({
-                    tags: licenseComponents,
-                    tokenSeparators: [','],
-                    createTag: function (tag) {
-                        return {
-                            id: tag.term + ' (New component)',
-                            text: tag.term + ' (New component)',
-                            newOption: true
-                        }
-                    },
-                })
+                new AJS.DatePicker($(event.target).find('#expire-time-field')[0], {'overrideBrowserDefault': true})
+                createSelectField('/rest/scriptrunner/latest/custom/getActiveUsers?accessToken=dupa', '#user-field', false, true, false)
+                createSelectField('/rest/scriptrunner/latest/custom/getProjectComponents?type=license&projectKey=ASSET', '#software-field' ,true, false, false)
+                createSelectField('/rest/scriptrunner/latest/custom/getCustomFieldOptionsById?id=11509&contextIssue=ASSET-1', '#place-field' ,false, false, false)
+                createSelectField('/rest/scriptrunner/latest/custom/getCustomFieldOptionsById?id=11902&contextIssue=ASSET-1', '#license-type-field' ,false, false, false)
+
                 $(event.target).find("#close-button").click(function(e) {
-                    e.preventDefault();
-                    AJS.dialog2(event.target).hide();
-                    AJS.dialog2(event.target).remove();
+                    closeDialog(e, event)
                 });
+
                 $(event.target).find("#cancel-button").click(function(e) {
-                    e.preventDefault();
-                    AJS.dialog2(event.target).hide();
-                    AJS.dialog2(event.target).remove();
+                    closeDialog(e, event)
                 });
+
                 $(event.target).find('#create-asset-toggle').change(function() {
                     let toggleIsChecked = $(event.target).find('#create-asset-toggle').prop('checked')
                     globalFields(event, toggleIsChecked)
@@ -67,67 +39,54 @@
                         licenseFields(event, 'hide')
                     }
                 });
+
                 $(event.target).find("#create-button").click(function(e) {
-                    let toggleIsChecked = $(event.target).find('#create-asset-toggle').prop('checked');
-                    let requiredFieldsFilled = true
-                    $(event.target).find('#close-purchase-form input').each(function (){
-                        if ($(this).is(':visible') && this.value === '' && $(this).prop('required') && !(this.id).contains('s2id_autogen')){
-                            requiredFieldsFilled = false
-                            console.error(this.id + ' is empty')
+                    let requiredFieldsFilled = checkRequiredFields(event, '#close-purchase-form')
+                    let toggleChecked = $(event.target).find('#create-asset-toggle').prop('checked');
+                    if (!requiredFieldsFilled)
+                        showErrorMsg('Fill the required fields')
+                    else if (toggleChecked && requiredFieldsFilled) {
+                        let licenseList = getSelectData(event, '#software-field', 'text', true)
+                        let userSelected = getSelectData(event, '#user-field', 'id', false)
+                        let placeSelected = getSelectData(event, '#place-field', 'text', false)
+                        if (placeSelected !== '' && userSelected !== ''){
+                            showErrorMsg('User field and Place field can not be filled in during one execution')
                         }
-                    })
-                    if (!requiredFieldsFilled){
-                        AJS.flag({
-                            type: 'error',
-                            body: 'Fill the required fields',
-                            close: 'auto'
-                        });
+                        else {
+                            AJS.$.ajax({
+                                url: "/rest/scriptrunner/latest/custom/closePurchase" +
+                                    '?createAsset=' 	+ toggleChecked +
+                                    '&summary=' 		+ $(event.target).find('#summary-field').val() +
+                                    '&assetType='		+ $(event.target).find('input[name=asset-type-radio]').filter(":checked").val() +
+                                    '&serialNumber=' 	+ $(event.target).find('#serial-number-field').val() +
+                                    '&model=' 		  	+ $(event.target).find('#model-field').val() +
+                                    '&invoiceNumber=' 	+ $(event.target).find('#invoice-number-field').val() +
+                                    '&software='		+ licenseList +
+                                    '&user='			+ userSelected +
+                                    '&place='           + placeSelected +
+                                    '&licenseType='		+ $(event.target).find('#license-type-field').val() +
+                                    '&expireTime='		+ $(event.target).find('#expire-time-field').val() +
+                                    '&description='		+ $(event.target).find('#description-field').val() +
+                                    '&issueKey=' 	  	+ JIRA.Issue.getIssueKey(),
+                                type: 'POST',
+                                dataType: 'json',
+                                contentType: 'application/json',
+                                async: false,
+                                success: function() {
+                                    JIRA.trigger(JIRA.Events.REFRESH_ISSUE_PAGE, [JIRA.Issue.getIssueId()]);
+                                    AJS.dialog2(event.target).hide();
+                                    AJS.dialog2(event.target).remove();
+                                },
+                                error: function() {
+                                    showErrorMsg('Necessary endpoint could not be correctly accessed. Check console logs or contact your Jira Administrator')
+                                }
+                            });
+                        }
                     }
-                    if (toggleIsChecked && requiredFieldsFilled) {
-                        let licenseComponentsSelected = $(event.target).find('#software-field').select2('data')
-                        let licenseComponentsList = []
-                        licenseComponentsSelected.forEach(function(elem){
-                            licenseComponentsList.push(elem.text)
-                        })
-                        let userSelected = $(event.target).find('#user-field').select2('data')
-                        if (userSelected)
-                            userSelected = userSelected.id
+                    else if (!toggleChecked && requiredFieldsFilled){
                         AJS.$.ajax({
                             url: "/rest/scriptrunner/latest/custom/closePurchase" +
-                                '?createAsset=' 	+ toggleIsChecked +
-                                '&summary=' 		+ $(event.target).find('#summary-field').val() +
-                                '&assetType='		+ $(event.target).find('input[name=asset-type-radio]').filter(":checked").val() +
-                                '&serviceTag=' 	  	+ $(event.target).find('#service-tag-field').val() +
-                                '&model=' 		  	+ $(event.target).find('#model-field').val() +
-                                '&invoiceNumber=' 	+ $(event.target).find('#invoice-number-field').val() +
-                                '&software='		+ licenseComponentsList +
-                                '&user='			+ userSelected +
-                                '&licenseType='		+ $(event.target).find('#license-type-field').val() +
-                                '&expireTime='		+ $(event.target).find('#expire-time-field').val() +
-                                '&description='		+ $(event.target).find('#description-field').val() +
-                                '&issueKey=' 	  	+ JIRA.Issue.getIssueKey(),
-                            type: 'POST',
-                            dataType: 'json',
-                            contentType: 'application/json',
-                            async: false,
-                            success: function() {
-                                JIRA.trigger(JIRA.Events.REFRESH_ISSUE_PAGE, [JIRA.Issue.getIssueId()]);
-                                AJS.dialog2(event.target).hide();
-                                AJS.dialog2(event.target).remove();
-                            },
-                            error: function() {
-                                AJS.flag({
-                                    type: 'error',
-                                    body: 'Necessary endpoint could not be correctly accessed. Check console logs or contact your Jira Administrator',
-                                    close: 'auto'
-                                });
-                            }
-                        });
-                    }
-                    else if (!toggleIsChecked && requiredFieldsFilled){
-                        AJS.$.ajax({
-                            url: "/rest/scriptrunner/latest/custom/closePurchase" +
-                                "?createAsset=" 	+ toggleIsChecked +
+                                "?createAsset=" 	+ toggleChecked +
                                 "&cost=" 			+ $(event.target).find("#cost-field").val() +
                                 "&issueKey=" 		+ JIRA.Issue.getIssueKey(),
                             type: 'POST',
@@ -140,11 +99,7 @@
                                 AJS.dialog2(event.target).remove();
                             },
                             error: function() {
-                                AJS.flag({
-                                    type: 'error',
-                                    body: 'Necessary endpoint could not be correctly accessed. Check console logs or contact your Jira Administrator',
-                                    close: 'auto'
-                                });
+                                showErrorMsg('Necessary endpoint could not be correctly accessed. Check console logs or contact your Jira Administrator')
                             }
                         });
                     }
@@ -152,20 +107,14 @@
             }
         });
     });
-    function formatWithAvatar(opt_data) {
-        var personName = opt_data.person && opt_data.person.displayName ? opt_data.person.displayName : opt_data.person && opt_data.person.name ? opt_data.person.name : opt_data.unknownName;
-        return '<span>' + aui.avatar.avatar({
-            size: opt_data.size,
-            avatarImageUrl: opt_data.person.avatarUrl
-        }) + AJS.escapeHtml(personName) + '</span>';
-    }
 
-    function makeUserPicker($el, usersList, multiple) {
-        $el.auiSelect2({
+    function makeFieldPicker($elem, usersList, imgSize, type, multiple) {
+        $elem.auiSelect2({
             hasAvatar: true,
             formatResult: function (result) {
                 return formatWithAvatar({
-                    size: 'small',
+                    size: imgSize,
+                    type: type,
                     person: {
                         displayName: result.text,
                         name: result.id,
@@ -184,9 +133,9 @@
                 });
             },
             query: function (query) {
-                var results = [];
-                for (var i = 0, ii = usersList.length; i < ii; i++) {
-                    var result = usersList[i];
+                let results = [];
+                for (let i = 0, ii = usersList.length; i < ii; i++) {
+                    let result = usersList[i];
                     if (result.text.toLowerCase().indexOf(query.term.toLowerCase()) > -1) {
                         results.push(result);
                     }
@@ -197,16 +146,26 @@
         });
     }
 
+    function formatWithAvatar(opt_data) {
+        let personName = opt_data.person && opt_data.person.displayName ? opt_data.person.displayName : opt_data.person && opt_data.person.name ? opt_data.person.name : opt_data.unknownName;
+        return '<span class="' + opt_data.type + '">' + aui.avatar.avatar({
+            size: opt_data.size,
+            avatarImageUrl: opt_data.person.avatarUrl
+        }) + AJS.escapeHtml(personName) + '</span>';
+    }
+
     function deviceFields (event, oper){
         switch(oper){
             case 'hide':
-                $(event.target).find('#service-tag-field-group').hide()
+                $(event.target).find('#place-field-group').hide()
+                $(event.target).find('#serial-number-field-group').hide()
                 $(event.target).find('#place-field-group').hide()
                 $(event.target).find('#model-field-group').hide()
                 $(event.target).find('#invoice-number-field-group').hide()
                 break
             case 'show':
-                $(event.target).find('#service-tag-field-group').show()
+                $(event.target).find('#place-field-group').show()
+                $(event.target).find('#serial-number-field-group').show()
                 $(event.target).find('#place-field-group').show()
                 $(event.target).find('#model-field-group').show()
                 $(event.target).find('#invoice-number-field-group').show()
@@ -263,5 +222,84 @@
             default:
                 console.error('provided value should be boolean')
         }
+    }
+
+    function createSelectField(url, htmlTag, dynamic, fieldPicker, multiple){
+        let dataList
+        AJS.$.ajax({
+            url: url,
+            type: 'GET',
+            datatype: 'json',
+            async: false,
+            success: function(data){dataList = data},
+            error: function() {
+                showErrorMsg('Necessary endpoint could not be correctly accessed. Check console logs or contact your Jira Administrator')
+            }
+        })
+        if (fieldPicker){
+            AJS.$(".aui-select2 select").auiSelect2()
+            makeFieldPicker(AJS.$(htmlTag), dataList, multiple);
+        }
+        else {
+            if (dynamic){
+                AJS.$(htmlTag).auiSelect2({
+                    tags: dataList,
+                    multiple: multiple,
+                    tokenSeparators: [','],
+                    createTag: function (tag) {
+                        return {
+                            id: tag.term + ' (New component)',
+                            text: tag.term + ' (New component)',
+                            newOption: true
+                        }
+                    },
+                })
+            }
+            else {
+                AJS.$(htmlTag).auiSelect2({
+                    data: dataList,
+                    multiple: multiple
+                })
+            }
+        }
+    }
+
+    function closeDialog(e, event){
+        e.preventDefault();
+        AJS.dialog2(event.target).hide();
+        AJS.dialog2(event.target).remove();
+    }
+
+    function checkRequiredFields(event, htmlTag){
+        let fieldsFilled = true
+        $(event.target).find(htmlTag + ' input').each(function (){
+            if ($(this).is(':visible') && this.value === '' && $(this).prop('required') && !(this.id).contains('s2id_autogen')){
+                console.error(this.id + ' is empty')
+                fieldsFilled = false
+            }
+        })
+        return fieldsFilled
+    }
+
+    function getSelectData(event, htmlTag, dataType, list) {
+        let dataSelected = $(event.target).find(htmlTag).select2('data')
+        if (list){
+            let dataList = []
+            dataSelected.forEach(function(elem){
+                dataList.push(elem.dataType)
+            })
+            return dataList
+        }
+        else {
+            return dataSelected
+        }
+    }
+
+    function showErrorMsg(body) {
+        AJS.flag({
+            type: 'error',
+            body: body,
+            close: 'auto'
+        });
     }
 })(AJS.$);
