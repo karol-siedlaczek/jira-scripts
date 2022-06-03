@@ -42,15 +42,15 @@ closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-soft
         <div style="border-bottom: 1px solid #ddd; margin: 15px 0 15px 0"></div> 
         <div class="field-group" id="summary-field-group" style="display: none">
           <label for="summary-field">Summary<span class="aui-icon icon-required">(required)</span></label>
-          <input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${issue.summary}">
+          <input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${issue.summary}" required>
         </div>
         <div class='field-group' id="user-field-group" style="display: none">
           <label for="user-field">User/s<span class="aui-icon icon-required"></span></label>
-          <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user/s"></input>
+          <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user/s" required></input>
         </div>
         <div class='field-group' id="environment-field-group" style="display: none">
           <label for="user-field">Environment/s<span class="aui-icon icon-required"></span></label>
-          <input class="text medium-long-field aui-select2" type="text" length="60" id="environment-field" name="Environment" placeholder="Select a environment/s"></input>
+          <input class="text medium-long-field aui-select2" type="text" length="60" id="environment-field" name="Environment" placeholder="Select a environment/s" required></input>
         </div>
         <div class="field-group" id="description-field-group" style="display: none">
           <label for="description-field">Description</label>
@@ -76,7 +76,7 @@ closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-soft
 
 closeGrantAccess(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, String body, HttpServletRequest request ->
     def issueManager = ComponentAccessor.getIssueManager()
-    //def issueService = ComponentAccessor.getIssueService()
+    def issueService = ComponentAccessor.getIssueService()
     def userManager = ComponentAccessor.getUserManager()
     def remoteUserManager = ComponentAccessor.getOSGiComponentInstanceOfType(UserManager)
     def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationProperties)
@@ -87,7 +87,6 @@ closeGrantAccess(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-
     def issue = issueManager.getIssueObject(queryParams.getFirst('issueKey') as String)
     def remoteUser = userManager.getUserByName(remoteUserManager.getRemoteUser(request)?.username as String)
     def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
-    //def transitionOptions = new TransitionOptions.Builder().skipConditions().skipPermissions().skipValidators().build()
     def message = ''
 
     if (assetCreation) {

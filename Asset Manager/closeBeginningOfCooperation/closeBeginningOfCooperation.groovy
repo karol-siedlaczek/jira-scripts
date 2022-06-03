@@ -42,7 +42,7 @@ closeBeginningOfCooperationDialog(httpMethod: 'GET', groups: ['jira-core-users',
       <form class="aui" id='close-beginning-of-cooperation-form'>
         <div class='field-group' id="user-field-group">
           <label for="user-field">User<span class="aui-icon icon-required"></span></label>
-          <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user"></input>
+          <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user" required></input>
         </div>
         <div class='field-group' id="access-field-group">
           <label for="access-field">Access/s</label>
@@ -138,7 +138,7 @@ Issue createPersonAsset(ApplicationUser user, // creates issue with issuetype Pe
     def SHARING_IMAGE_IN_INTRANET_FIELD = customFieldManager.getCustomFieldObject(11707)
     def SHARING_PRIVATE_PHONE_NUMBER_FIELD = customFieldManager.getCustomFieldObject(11708)
     def RELATES_RELATION_ID = 10003 as Long
-    def PERSON_ACTIVE_TRANSITION_ID = 11
+    //def PERSON_ACTIVE_TRANSITION_ID = 11
 
     def newIssue = issueFactory.getIssue()
     newIssue.setSummary(user.displayName)

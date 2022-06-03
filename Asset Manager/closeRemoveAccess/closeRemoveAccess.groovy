@@ -11,7 +11,9 @@ import com.atlassian.jira.component.ComponentAccessor
 import com.atlassian.jira.workflow.TransitionOptions
 import com.atlassian.sal.api.ApplicationProperties
 import com.atlassian.sal.api.user.UserManager
+import com.atlassian.jira.issue.Issue
 import com.atlassian.sal.api.UrlMode
+import com.atlassian.jira.user.ApplicationUser
 
 @BaseScript CustomEndpointDelegate delegate
 
@@ -36,18 +38,18 @@ closeRemoveAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-sof
           </header>
           <div class="aui-dialog2-content">
             <form class="aui" id='close-remove-access-form'>
-
+              
               <div class='field-group' id="user-field-group">
               	<label for="user-field">User/s</label>
                 <input class="text  aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user/s"></input>
                 <input type="button" class="aui-button" id="user-field-search" value="Search"/>
               </div>
-
+              
               <div class='field-group' id="issue-field-group">
               	<label for="issue-field">Access/s</label>
                 <input class="text medium-long-field aui-select2" type="text" length="60" id="issue-field" name="Access" placeholder="Select a access/s"></input>
               </div>
-
+   			  
               <p>Search for a user if you want to remove any access from his list, if not just quit</p>
             </form>
             </div>
@@ -55,7 +57,7 @@ closeRemoveAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-sof
                 <div class="aui-dialog2-footer-actions">
                 	<aui-spinner id="custom-dialog-spinner" size="small" style="display: none"></aui-spinner>
                 	<input class="aui-button aui-button-primary submit" type="submit" value="Finish" id="create-button">
-                    <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>
+                    <button type="button" accesskey="`" title="Press Alt+` to cancel" class="aui-button aui-button-link cancel" resolved="" id="cancel-button">Cancel</button>     
                 </div>
                 <div class="aui-dialog2-footer-hint">
               		<p>Search to update access list based on provided user/s</p>
@@ -74,11 +76,7 @@ closeRemoveAccess(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software
     def accessIssuesParam = queryParams.getFirst('accessIssue') as String
     def remoteUser = userManager.getUserByName(remoteUserManager.getRemoteUser(request)?.username as String)
     def issue = issueManager.getIssueObject(issueParam)
-    def transitionOptions = new TransitionOptions.Builder()
-            .skipConditions()
-            .skipPermissions()
-            .skipValidators()
-            .build()
+    def transitionOptions = new TransitionOptions.Builder().skipConditions().skipPermissions().skipValidators().build()
     def message = ''
     if (!onlyCloseParam) {
         log.warn(onlyCloseParam)
@@ -98,12 +96,17 @@ closeRemoveAccess(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software
             message = message + "Access <a href='${baseUrl}/browse/${accessIssue.key}' target='_blank'>${accessIssue.key}</a> has been removed</br>"
         }
     }
-    else {
-        def closeTransitionValidationResult = issueService.validateTransition(remoteUser, issue.id, CLOSE_TRANSITION_ID, new IssueInputParametersImpl(), transitionOptions)
-        if(closeTransitionValidationResult.isValid()) // if this transition is valid, issue it
-            issueService.transition(remoteUser, closeTransitionValidationResult)
-        message = "Issue <a href='${baseUrl}/browse/${issue.key}'>${issue.key}</a> has been closed</br>"
-    }
+    transistIssue(remoteUser, issue, CLOSE_TRANSITION_ID)
+    message = message + "Issue <a href='${baseUrl}/browse/${issue.key}'>${issue.key}</a> has been closed</br>"
     UserMessageUtil.success(message as String)
     return Response.ok([success: message]).build()
+}
+
+void transistIssue(ApplicationUser user, Issue issue, Integer transitionId) {
+    def issueService = ComponentAccessor.getIssueService()
+    def transitionOptions = new TransitionOptions.Builder().skipConditions().skipPermissions().skipValidators().build()
+
+    def transitionValidationResult = issueService.validateTransition(user, issue.id, transitionId, new IssueInputParametersImpl(), transitionOptions)
+    if (transitionValidationResult.isValid())
+        issueService.transition(user, transitionValidationResult)
 }

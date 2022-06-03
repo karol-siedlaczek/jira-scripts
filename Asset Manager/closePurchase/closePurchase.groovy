@@ -25,24 +25,8 @@ import com.atlassian.jira.user.ApplicationUser
 
 closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams ->
     def issueManager = ComponentAccessor.getIssueManager()
-    //def customFieldManager = ComponentAccessor.getCustomFieldManager()
-    //def optionsManager = ComponentAccessor.getOptionsManager()
 
-    //def LICENSE_TYPE_FIELD = customFieldManager.getCustomFieldObject(11902)
-    //def PLACE_FIELD = customFieldManager.getCustomFieldObject(11902)
-
-    def currIssue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)
-    /*def issue = issueManager.getIssueObject('ASSET-1')  // to load available options related to project
-    def licenseTypeFieldConfig = LICENSE_TYPE_FIELD.getRelevantConfig(issue)
-    def licenseTypes = optionsManager.getOptions(licenseTypeFieldConfig)
-    def licenseTypeOptions = ''
-    for (licenseType in licenseTypes)
-      licenseTypeOptions = "${licenseTypeOptions}<aui-option>${licenseType}</aui-option>"
-    def placeFieldConfig = PLACE_FIELD.getRelevantConfig(issue)
-    def places = optionsManager.getOptions(licenseTypeFieldConfig)
-    def placeOptions = ''
-    for (place in places)
-      placeOptions = "${placeOptions}<aui-option>${place}</aui-option>"*/
+    def issue = issueManager.getIssueObject(queryParams.getFirst('issue') as Long)
     def dialog =
             """
   <section role="dialog" id="close-purchase-dialog" class="aui-layer aui-dialog2 aui-dialog2-medium" aria-hidden="true" data-aui-remove-on-hide="true">
@@ -61,7 +45,7 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
         <div style="border-bottom: 1px solid #ddd; margin: 15px 0 15px 0"></div>
         <div class="field-group" id="summary-field-group" style="display: none">
           <label for="summary-field">Summary<span class="aui-icon icon-required">(required)</span></label>
-          <input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${currIssue.summary}" required>
+          <input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${issue.summary}" required>
         </div>
         <div class="field-group" id="asset-type-field-group" style="display: none">
           <label for='radio'>Asset type<span class="aui-icon icon-required">(required)</span></label>
@@ -76,12 +60,12 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
         </div>
         <div class='field-group' id="user-field-group" style="display: none">
           <label for="user-field">User</label>
-          <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user"/>
+          <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user" data-allow-clear=true/>
           <div class="description">Fill to auto assign asset to selected user</div>
         </div>
         <div class='field-group' id="place-field-group" style="display: none">
           <label for="place-field">Place</label>
-          <input class="text medium-long-field aui-select2" type="text" length="60" id="place-field" name="Place" placeholder="Select a place"/>
+          <input class="text medium-long-field aui-select2" type="text" length="60" id="place-field" name="Place" placeholder="Select a place" data-allow-clear=true/>
           <div class="description">Fill to auto assign asset to selected collocation</div>
         </div>
         <div class="field-group" id="software-field-group" style="display: none">
@@ -222,6 +206,8 @@ Issue createAsset(ApplicationUser user,
         newIssue.setCustomFieldValue(USER_FIELD, user)
         newIssue.setIssueType(LICENSE_ISSUE_TYPE)
     }
+    else
+        log.error('not found provided license type')
     Issue assetIssue = issueManager.createIssueObject(remoteUser, newIssue)
     issueLinkManager.createIssueLink(issue.id, newIssue.id, 10003, null, remoteUser)
     return assetIssue

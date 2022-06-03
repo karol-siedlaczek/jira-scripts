@@ -2,9 +2,10 @@
     $(function() {
         AJS.dialog2.on('show', function(event) {
             if (event.target.id === 'close-purchase-dialog') {
+                var extFun = require('../oper')
                 new AJS.DatePicker($(event.target).find('#expire-time-field')[0], {'overrideBrowserDefault': true})
-                createSelectField('/rest/scriptrunner/latest/custom/getActiveUsers?accessToken=dupa', '#user-field', false, true, false)
-                createSelectField('/rest/scriptrunner/latest/custom/getProjectComponents?type=license&projectKey=ASSET', '#software-field' ,true, false, false)
+                extFun.createSelectField('/rest/scriptrunner/latest/custom/getActiveUsers?accessToken=dupa', '#user-field', true, false, false)
+                createSelectField('/rest/scriptrunner/latest/custom/getProjectComponents?type=license&projectKey=ASSET', '#software-field' ,false, true, false)
                 createSelectField('/rest/scriptrunner/latest/custom/getCustomFieldOptionsById?id=11509&contextIssue=ASSET-1', '#place-field' ,false, false, false)
                 createSelectField('/rest/scriptrunner/latest/custom/getCustomFieldOptionsById?id=11902&contextIssue=ASSET-1', '#license-type-field' ,false, false, false)
 
@@ -105,15 +106,16 @@
                     }
                 });
             }
+
         });
     });
 
-    function makeFieldPicker($elem, usersList, imgSize, type, multiple) {
+    function makeFieldPicker($elem, usersList, type, size, multiple) {
         $elem.auiSelect2({
             hasAvatar: true,
             formatResult: function (result) {
                 return formatWithAvatar({
-                    size: imgSize,
+                    size: size,
                     type: type,
                     person: {
                         displayName: result.text,
@@ -147,7 +149,7 @@
     }
 
     function formatWithAvatar(opt_data) {
-        let personName = opt_data.person && opt_data.person.displayName ? opt_data.person.displayName : opt_data.person && opt_data.person.name ? opt_data.person.name : opt_data.unknownName;
+        let personName = opt_data.person && opt_data.person.displayName ? opt_data.person.displayName : opt_data.person && opt_data.person.name ? opt_data.person.name : opt_data.unknownName; //if user
         return '<span class="' + opt_data.type + '">' + aui.avatar.avatar({
             size: opt_data.size,
             avatarImageUrl: opt_data.person.avatarUrl
@@ -224,7 +226,7 @@
         }
     }
 
-    function createSelectField(url, htmlTag, dynamic, fieldPicker, multiple){
+    function createSelectField(url, htmlTag, dynamic, multiple, fieldPicker, type, size){ //type and size to fill only if fieldPicker=true
         let dataList
         AJS.$.ajax({
             url: url,
@@ -238,7 +240,7 @@
         })
         if (fieldPicker){
             AJS.$(".aui-select2 select").auiSelect2()
-            makeFieldPicker(AJS.$(htmlTag), dataList, multiple);
+            makeFieldPicker(AJS.$(htmlTag), dataList, type, size, multiple);
         }
         else {
             if (dynamic){

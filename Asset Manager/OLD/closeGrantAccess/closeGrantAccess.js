@@ -2,37 +2,6 @@
 	$(function() {
     	AJS.dialog2.on('show', function(event) {
         	if (event.target.id === 'close-grant-access-dialog') {
-                /*AJS.$.ajax({
-                    url: '/rest/scriptrunner/latest/custom/getActiveUsers?accessToken=token1',
-                    type: 'GET',
-                    datatype: 'json',
-                    async: false,
-                    success: function(data){ usersList = data }
-                })
-                AJS.$(".aui-select2 select").auiSelect2()
-                makeUserPicker(AJS.$("#user-field"), usersList, true);*/
-                /*AJS.$.ajax({
-                    url: '/rest/scriptrunner/latest/custom/getAssetComponents?type=access',
-                    type: 'GET',
-                    datatype: 'json',
-                    async: false,
-                    success: function(data){accessComponents = data}
-                })
-                AJS.$("#environment-field").auiSelect2({
-                    tags: accessComponents,
-                    tokenSeparators: [','],
-                    placeholder: 'Select a component/s',
-                    createTag: function (params, term) {
-                        term = $.trim(params.term);
-                        if (term === '')
-                            return null
-                        return {
-                            id: term + ' (New component)',
-                            text: term + ' (New Component)',
-                            newTag: true // add additional parameters
-                        }
-                    },
-                });*/
                 createSelectField('/rest/scriptrunner/latest/custom/getActiveUsers?accessToken=token1', '#user-field' ,false, true, true)
                 createSelectField('/rest/scriptrunner/latest/custom/getAssetComponents?type=access', '#environment-field' ,true, false, true)
                 $(event.target).find("#close-button").click(function(e) {
@@ -59,16 +28,6 @@
                     else if (toggleChecked && requiredFieldsFilled) {
                         let userList = getSelectData(event, '#user-field', 'id', true)
                         let accessList = getSelectData(event, '#environment-field', 'id', true)
-                        /*let usersSelected = $(event.target).find('#user-field').select2('data')
-                        let usersList = []
-                        usersSelected.forEach(function(elem){
-                            usersList.push(elem.id)
-                        })
-                        let accessComponentsSelected = $(event.target).find('#environment-field').select2('data')
-                        let accessComponentsList = []
-                        accessComponentsSelected.forEach(function(elem){
-                            accessComponentsList.push(elem.id)
-                        })*/
                         AJS.$.ajax({
                             url: "/rest/scriptrunner/latest/custom/closeGrantAccess" + 
                                  '?createAsset=' 	+ toggleChecked +
