@@ -99,7 +99,7 @@ closeGrantAccess(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-
             }
         }
     }
-    message = "Issue <a href='${baseUrl}/browse/${issue.key}'>${issue.key}</a> has been closed</br>"
+    message = message + "Issue <a href='${baseUrl}/browse/${issue.key}'>${issue.key}</a> has been closed</br>"
     transistIssue(remoteUser, issue, CLOSE_GRANT_ACCESS_TRANSITION_ID)
     UserMessageUtil.success(message as String)
     return Response.ok([success: message]).build()
@@ -120,7 +120,7 @@ Issue createAccessAsset(ApplicationUser user,
 
     def USER_FIELD = customFieldManager.getCustomFieldObject(11701)
     def ACCESS_ISSUE_TYPE = issueTypeManager.getIssueType('11301')
-    def RELATES_RELATION_ID = 10002 as Long
+    def RELATES_RELATION_ID = 10003 as Long
     def ASSET_PROJECT = projectManager.getProjectByCurrentKey('ASSET')
 
     def newIssue = issueFactory.getIssue()

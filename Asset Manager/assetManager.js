@@ -3,7 +3,7 @@
         AJS.dialog2.on('show', function(event) {
             if (event.target.id === 'close-purchase-dialog') {
                 new AJS.DatePicker($(event.target).find('#expire-time-field')[0], {'overrideBrowserDefault': true})
-                createSelectField('/rest/scriptrunner/latest/custom/getActiveUsers?accessToken=token', '#user-field', false, false, true, true, 'user', 'small')
+                createSelectField('/rest/scriptrunner/latest/custom/getActiveUsers?accessToken=', '#user-field', false, false, true, true, 'user', 'small')
                 createSelectField('/rest/scriptrunner/latest/custom/getProjectComponents?type=license&projectKey=ASSET', '#software-field' ,true, true, false, false)
                 createSelectField('/rest/scriptrunner/latest/custom/getCustomFieldOptionsById?id=11509&contextIssue=ASSET-1', '#place-field' ,false, false, true, false)
                 createSelectField('/rest/scriptrunner/latest/custom/getCustomFieldOptionsById?id=11902&contextIssue=ASSET-1', '#license-type-field' ,false, false,false, false)
@@ -48,9 +48,10 @@
                         let licenseList = getSelectData(event, '#software-field', 'text', true)
                         let userSelected = getSelectData(event, '#user-field', 'id', false)
                         let placeSelected = getSelectData(event, '#place-field', 'text', false)
-                        if (placeSelected !== '' && userSelected !== ''){
+                        console.log(placeSelected)
+                        console.log(userSelected)
+                        if (placeSelected !== null && userSelected !== null)
                             showErrorMsg('User field and Place field can not be filled in during one execution')
-                        }
                         else {
                             sendPostRequest(event,
                                 "/rest/scriptrunner/latest/custom/closePurchase" +
@@ -402,25 +403,31 @@
     }
     function getSelectData(event, htmlTag, dataType, list) {
         let dataSelected = $(event.target).find(htmlTag).select2('data')
-        if (list){
-            let dataList = []
-            if (dataType === 'id'){
-                dataSelected.forEach(function(elem){
-                    dataList.push(elem.id)
-                })
+        try {
+            if (list){
+                let dataList = []
+                if (dataType === 'id'){
+                    dataSelected.forEach(function(elem){
+                        dataList.push(elem.id)
+                    })
+                }
+                else if (dataType === 'text'){
+                    dataSelected.forEach(function(elem){
+                        dataList.push(elem.text)
+                    })
+                }
+                return dataList
             }
-            else if (dataType === 'text'){
-                dataSelected.forEach(function(elem){
-                    dataList.push(elem.text)
-                })
-            }
-            return dataList
-        }
-        else
+            else
             if (dataType === 'id')
                 return dataSelected.id
             else if (dataType === 'text')
                 return dataSelected.text
+        }
+        catch (error) {
+            if (error instanceof TypeError)
+                return null
+        }
     }
     function showErrorMsg(body) {
         AJS.flag({

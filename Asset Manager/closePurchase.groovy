@@ -135,7 +135,7 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
     if (assetCreation) {
         def user = userManager.getUserByName(queryParams.getFirst('user') as String)
         Issue assetIssue = createAsset(user, remoteUser, issue, queryParams, issueManager)
-        message = message + "Asset <a href='${baseUrl}/browse/${assetIssue.key}' target='_blank'>${assetIssue.key}</a> has been created and current issue has been closed</br>"
+        message = message + "Asset <a href='${baseUrl}/browse/${assetIssue.key}' target='_blank'>${assetIssue.key}</a> has been created</br>"
     }
     else {
         updateCostField(issue, queryParams.getFirst('cost') as Double)
@@ -160,6 +160,7 @@ Issue createAsset(ApplicationUser user,
     def optionsManager = ComponentAccessor.getOptionsManager()
 
     def USER_FIELD = customFieldManager.getCustomFieldObject(11701)
+    def PLACE_FIELD = customFieldManager.getCustomFieldObject(11509)
     def SERVICE_TAG_FIELD = customFieldManager.getCustomFieldObject(11709)
     def MODEL_FIELD = customFieldManager.getCustomFieldObject(11503)
     def INVOICE_NUMBER_FIELD = customFieldManager.getCustomFieldObject(11900)
@@ -180,6 +181,11 @@ Issue createAsset(ApplicationUser user,
         newIssue.setCustomFieldValue(MODEL_FIELD, queryParams.getFirst('model') as String)
         newIssue.setCustomFieldValue(INVOICE_NUMBER_FIELD, queryParams.getFirst('invoiceNumber') as String)
         newIssue.setCustomFieldValue(USER_FIELD, user)
+        if (queryParams.getFirst('place') != '') {
+            def availablePlaces = optionsManager.getOptions(PLACE_FIELD.getRelevantConfig(newIssue))
+            def licenseTypeValue = availablePlaces.find { it.value == queryParams.getFirst('place') as String }
+            newIssue.setCustomFieldValue(PLACE_FIELD, licenseTypeValue)
+        }
     }
     else if (queryParams.getFirst('assetType') == 'License') {
         def expireTimeValue = ''
