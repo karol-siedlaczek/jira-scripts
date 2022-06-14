@@ -11,7 +11,7 @@ def adminUser = userManager.getUserByName('admin')
 def assetName
 def comment
 
-if (issue.issueType.name == 'License')
+if (issue.issueType.name == 'License' | issue.issueType.name == 'Sub-License')
     assetName = 'License'
 else
     assetName = 'Device'

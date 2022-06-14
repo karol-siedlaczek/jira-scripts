@@ -1,4 +1,3 @@
-import java.util.LinkedList
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
 import javax.ws.rs.core.MultivaluedMap
@@ -46,7 +45,7 @@ closeBeginningOfCooperationDialog(httpMethod: 'GET', groups: ['jira-core-users',
         </div>
         <div class='field-group' id="access-field-group">
           <label for="access-field">Access/s</label>
-          <input class="text medium-long-field aui-select2" type="text" length="60" id="access-field" name="Access" placeholder="Select a access/s"></input>
+          <input class="text medium-long-field aui-select2" type="text" length="60" id="access-field" name="Access" placeholder="Select access/es"></input>
         </div>
         <div class='field-group' id="device-field-group">
           <label for="device-field">Device/s</label>
@@ -96,8 +95,6 @@ closeBeginningOfCooperation(httpMethod: 'POST', groups: ['jira-core-users', 'jir
     Issue personIssue = createPersonAsset(user, remoteUser, issue, ASSET_PROJECT, USER_FIELD, issueManager, customFieldManager, issueLinkManager)
     message = message + "Person <a href='${baseUrl}/browse/${personIssue.key}' target='_blank'>${personIssue.key}</a> has been created</br>"
     if (!(queryParams.getFirst('device') as String).isEmpty()) {
-        //LinkedList<String> devices = new LinkedList<String>(Arrays.asList(queryParams.getFirst('device')))
-        //for (device in devices){
         for (device in (queryParams.getFirst('device') as String).split(',')){
             def deviceIssue = issueManager.getIssueByCurrentKey(device)
             assignDeviceAssetToPersonAsset(user, remoteUser, personIssue, deviceIssue, USER_FIELD, customFieldManager, issueLinkManager)
@@ -105,8 +102,6 @@ closeBeginningOfCooperation(httpMethod: 'POST', groups: ['jira-core-users', 'jir
         }
     }
     if (!(queryParams.getFirst('access') as String).isEmpty()) {
-        //LinkedList<String> accesses = new LinkedList<String>(Arrays.asList(queryParams.getFirst('device')))
-        //for (access in accesses){
         for (access in (queryParams.getFirst('access') as String).split(',')){
             Issue accessIssue = createAccessAsset(user, remoteUser, personIssue, access, ASSET_PROJECT, USER_FIELD, issueManager, customFieldManager, issueLinkManager)
             message = message + "Access <a href='${baseUrl}/browse/${accessIssue.key}' target='_blank'>${accessIssue.key}</a> has been created</br>"
@@ -138,7 +133,6 @@ Issue createPersonAsset(ApplicationUser user, // creates issue with issuetype Pe
     def SHARING_IMAGE_IN_INTRANET_FIELD = customFieldManager.getCustomFieldObject(11707)
     def SHARING_PRIVATE_PHONE_NUMBER_FIELD = customFieldManager.getCustomFieldObject(11708)
     def RELATES_RELATION_ID = 10003 as Long
-    //def PERSON_ACTIVE_TRANSITION_ID = 11
 
     def newIssue = issueFactory.getIssue()
     newIssue.setSummary(user.displayName)
@@ -156,9 +150,6 @@ Issue createPersonAsset(ApplicationUser user, // creates issue with issuetype Pe
     newIssue.setCustomFieldValue(SHARING_PRIVATE_PHONE_NUMBER_FIELD, issue.getCustomFieldValue(SHARING_PRIVATE_PHONE_NUMBER_FIELD))
     Issue personIssue = issueManager.createIssueObject(remoteUser, newIssue)
     issueLinkManager.createIssueLink(issue.id, personIssue.id, RELATES_RELATION_ID, null, remoteUser)
-    //def transitionValidationResult = issueService.validateTransition(remoteUser, personIssue.id, PERSON_ACTIVE_TRANSITION_ID, new IssueInputParametersImpl(), transitionOptions)
-    //if (transitionValidationResult.isValid())
-    //	issueService.transition(remoteUser, transitionValidationResult)
     return personIssue
 }
 
@@ -170,10 +161,8 @@ void assignDeviceAssetToPersonAsset(ApplicationUser user,
                                     CustomFieldManager customFieldManager,
                                     IssueLinkManager issueLinkManager){
     def DEVICE_IN_USED_TRANSITION_ID = 81
-    //def DEVICE_RELATION_ID = 10800 as Long
 
     userField.updateValue(null, deviceIssue, new ModifiedValue(deviceIssue.getCustomFieldValue(userField), user), new DefaultIssueChangeHolder())
-    //issueLinkManager.createIssueLink(personIssue.id, deviceIssue.id, DEVICE_RELATION_ID, null, remoteUser)
     transistIssue(remoteUser, deviceIssue, DEVICE_IN_USED_TRANSITION_ID)
 }
 
@@ -191,8 +180,6 @@ Issue createAccessAsset(ApplicationUser user,
     def projectComponentManager = ComponentAccessor.getProjectComponentManager()
 
     def ACCESS_ISSUE_TYPE = issueTypeManager.getIssueType('11301')
-    //def ACCESS_RELATION_ID = 10802 as Long
-    //def ACCESS_ACTIVE_TRANSITION_ID = 41
 
     def newIssue = issueFactory.getIssue()
     def component = projectComponentManager.findByComponentName(assetProject.id, access)
@@ -213,8 +200,6 @@ Issue createAccessAsset(ApplicationUser user,
     }
     newIssue.setComponent(newIssue.getComponents() + component)
     Issue accessIssue = issueManager.createIssueObject(remoteUser, newIssue)
-    //issueLinkManager.createIssueLink(personIssue.id, accessIssue.id, ACCESS_RELATION_ID, null, remoteUser)
-    //transistIssue(remoteUser, accessIssue, ACCESS_ACTIVE_TRANSITION_ID)
     return accessIssue
 }
 

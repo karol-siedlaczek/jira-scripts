@@ -40,16 +40,12 @@ closeGrantAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-soft
           <aui-toggle label="toggle button" id="create-asset-toggle"></aui-toggle>
         </div>
         <div style="border-bottom: 1px solid #ddd; margin: 15px 0 15px 0"></div> 
-        <div class="field-group" id="summary-field-group" style="display: none">
-          <label for="summary-field">Summary<span class="aui-icon icon-required">(required)</span></label>
-          <input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${issue.summary}" required>
-        </div>
         <div class='field-group' id="user-field-group" style="display: none">
           <label for="user-field">User/s<span class="aui-icon icon-required"></span></label>
           <input class="text medium-long-field aui-select2" type="text" length="60" id="user-field" name="User" placeholder="Select a user/s" required></input>
         </div>
         <div class='field-group' id="environment-field-group" style="display: none">
-          <label for="user-field">Environment/s<span class="aui-icon icon-required"></span></label>
+          <label for="user-field">Access to<span class="aui-icon icon-required"></span></label>
           <input class="text medium-long-field aui-select2" type="text" length="60" id="environment-field" name="Environment" placeholder="Select a environment/s" required></input>
         </div>
         <div class="field-group" id="description-field-group" style="display: none">
@@ -125,7 +121,6 @@ Issue createAccessAsset(ApplicationUser user,
 
     def newIssue = issueFactory.getIssue()
     def component = projectComponentManager.findByComponentName(ASSET_PROJECT.id, access)
-    newIssue.setSummary(queryParams.getFirst('summary') as String)
     newIssue.setProjectObject(ASSET_PROJECT)
     newIssue.setReporter(remoteUser) // user whose triggered dialog
     newIssue.setIssueType(ACCESS_ISSUE_TYPE)

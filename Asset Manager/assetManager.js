@@ -48,8 +48,6 @@
                         let licenseList = getSelectData(event, '#software-field', 'text', true)
                         let userSelected = getSelectData(event, '#user-field', 'id', false)
                         let placeSelected = getSelectData(event, '#place-field', 'text', false)
-                        console.log(placeSelected)
-                        console.log(userSelected)
                         if (placeSelected !== null && userSelected !== null)
                             showErrorMsg('User field and Place field can not be filled in during one execution')
                         else {
@@ -64,6 +62,7 @@
                                 '&software='		+ licenseList +
                                 '&user='			+ userSelected +
                                 '&place='           + placeSelected +
+                                "&cost=" 			+ $(event.target).find("#cost-field2").val() +
                                 '&licenseType='		+ $(event.target).find('#license-type-field').val() +
                                 '&expireTime='		+ $(event.target).find('#expire-time-field').val() +
                                 '&description='		+ $(event.target).find('#description-field').val() +
@@ -246,13 +245,11 @@
                 $(event.target).find('#place-field-group').hide()
                 $(event.target).find('#serial-number-field-group').hide()
                 $(event.target).find('#model-field-group').hide()
-                $(event.target).find('#invoice-number-field-group').hide()
                 break
             case 'show':
                 $(event.target).find('#place-field-group').show()
                 $(event.target).find('#serial-number-field-group').show()
                 $(event.target).find('#model-field-group').show()
-                $(event.target).find('#invoice-number-field-group').show()
                 break
             default:
                 console.error('not found oper')
@@ -287,6 +284,8 @@
                 $(event.target).find('#not-create-asset-paragraph').css('display', 'inline')
                 $(event.target).find('#asset-type-field-group').hide()
                 $(event.target).find('#summary-field-group').hide()
+                $(event.target).find('#invoice-number-field-group').hide()
+                $(event.target).find('#cost-field2-group').hide()
                 $(event.target).find('#description-field-group').hide()
                 $(event.target).find('#create-asset-paragraph').css('display', 'none')
                 $(event.target).find('#user-field-group').hide()
@@ -296,6 +295,8 @@
                 $(event.target).find('#not-create-asset-paragraph').css('display', 'none')
                 $(event.target).find('#asset-type-field-group').show()
                 $(event.target).find('#summary-field-group').show()
+                $(event.target).find('#invoice-number-field-group').show()
+                $(event.target).find('#cost-field2-group').show()
                 $(event.target).find('#description-field-group').show()
                 $(event.target).find('#create-asset-paragraph').css('display', 'inline')
                 $(event.target).find("#device-radio-button").prop("checked", true)

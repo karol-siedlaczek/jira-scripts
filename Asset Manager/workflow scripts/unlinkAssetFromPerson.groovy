@@ -1,9 +1,8 @@
 import com.atlassian.jira.component.ComponentAccessor
 
-def PERSON_ISSUETYPE_ID = '123'
+def PERSON_ISSUETYPE_ID = ''
 def issueLinkManager = ComponentAccessor.getIssueLinkManager()
 
-def issueManager = ComponentAccessor.getIssueManager()
 def currentUser = ComponentAccessor.getJiraAuthenticationContext().loggedInUser
 def issueInwardLinks = issueLinkManager.getInwardLinks(issue.id)
 def linkedIssue

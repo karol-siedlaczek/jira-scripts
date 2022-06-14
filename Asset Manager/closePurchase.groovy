@@ -1,3 +1,6 @@
+// Copyright 2022 Redge Technologies
+// Author: K. Siedlaczek
+
 import java.sql.Timestamp
 import javax.ws.rs.core.MediaType
 import javax.ws.rs.core.Response
@@ -12,6 +15,7 @@ import com.atlassian.sal.api.user.UserManager
 import com.atlassian.sal.api.UrlMode
 import com.atlassian.jira.issue.Issue
 import com.atlassian.jira.issue.IssueManager
+import com.atlassian.jira.issue.label.Label
 import com.atlassian.jira.issue.util.DefaultIssueChangeHolder
 import com.atlassian.jira.issue.IssueInputParametersImpl
 import com.atlassian.jira.issue.ModifiedValue
@@ -43,10 +47,6 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
           <aui-toggle label="toggle button" id="create-asset-toggle"></aui-toggle>
         </div>
         <div style="border-bottom: 1px solid #ddd; margin: 15px 0 15px 0"></div>
-        <div class="field-group" id="summary-field-group" style="display: none">
-          <label for="summary-field">Summary<span class="aui-icon icon-required">(required)</span></label>
-          <input class="text medium-long-field" type="text" id="summary-field" name="Summary" value="${issue.summary}" required>
-        </div>
         <div class="field-group" id="asset-type-field-group" style="display: none">
           <label for='radio'>Asset type<span class="aui-icon icon-required">(required)</span></label>
           <div class="radio">
@@ -80,13 +80,13 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
           <label for="expire-time-field">Expire time<span class="aui-icon icon-required"></span></label>
           <input class="aui-date-picker text medium-long-field" id="expire-time-field" name="Expire time" type="date" required/>
         </div>
-        <div class="field-group" id="serial-number-field-group" style="display: none">
-          <label for="serial-number-field">Serial number<span class="aui-icon icon-required"></span></label>
-          <input class="text medium-long-field" type="text" id="serial-number-field" name="Serial Number" required/>
-        </div>
         <div class="field-group" id="model-field-group" style="display: none">
           <label for="model-field">Model<span class="aui-icon icon-required"></span></label>
           <input class="text medium-long-field" type="text" id="model-field" name="Model" required/>
+        </div>
+        <div class="field-group" id="serial-number-field-group" style="display: none">
+          <label for="serial-number-field">Serial number<span class="aui-icon icon-required"></span></label>
+          <input class="text medium-long-field" type="text" id="serial-number-field" name="Serial Number" required/>
         </div>
         <div class="field-group" id="invoice-number-field-group" style="display: none">
           <label for="invoice-number-field">Invoice number<span class="aui-icon icon-required"></span></label>
@@ -95,6 +95,10 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
         <div class="field-group" id="cost-field-group">
           <label for="cost-field">Cost [PLN]<span class="aui-icon icon-required">(required)</span></label>
           <input class="text medium-long-field" id="cost-field" name="Cost" type="number" min="1" step="0.01" required/>
+        </div>
+        <div class="field-group" id="cost-field2-group" style="display: none">
+          <label for="cost-field">Cost [PLN]</label>
+          <input class="text medium-long-field" id="cost-field2" name="Cost" type="number" min="1" step="0.01"/>
         </div>
         <div class="field-group" id="description-field-group" style="display: none">
           <label for="description-field">Description</label>
@@ -161,7 +165,8 @@ Issue createAsset(ApplicationUser user,
 
     def USER_FIELD = customFieldManager.getCustomFieldObject(11701)
     def PLACE_FIELD = customFieldManager.getCustomFieldObject(11509)
-    def SERVICE_TAG_FIELD = customFieldManager.getCustomFieldObject(11709)
+    def COST_FIELD = customFieldManager.getCustomFieldObject(11901)
+    def SERIAL_NUMBER_FIELD = customFieldManager.getCustomFieldObject(11504)
     def MODEL_FIELD = customFieldManager.getCustomFieldObject(11503)
     def INVOICE_NUMBER_FIELD = customFieldManager.getCustomFieldObject(11900)
     def LICENSE_TYPE_FIELD = customFieldManager.getCustomFieldObject(11902)
@@ -171,26 +176,36 @@ Issue createAsset(ApplicationUser user,
     def ASSET_PROJECT = projectManager.getProjectByCurrentKey('ASSET')
 
     def newIssue = issueFactory.getIssue()
-    newIssue.setSummary(queryParams.getFirst('summary') as String)
     newIssue.setDescription(queryParams.getFirst('description') as String)
     newIssue.setProjectObject(ASSET_PROJECT)
+    if (queryParams.getFirst('cost') != '')
+        newIssue.setCustomFieldValue(COST_FIELD, queryParams.getFirst('cost') as Double)
+    newIssue.setCustomFieldValue(INVOICE_NUMBER_FIELD, queryParams.getFirst('invoiceNumber') as String)
     newIssue.reporter = remoteUser // user whose triggered dialog
     if (queryParams.getFirst('assetType') == 'Device'){
+        newIssue.setSummary(queryParams.getFirst('model') as String)
         newIssue.setIssueType(DEVICE_ISSUE_TYPE)
-        newIssue.setCustomFieldValue(SERVICE_TAG_FIELD, queryParams.getFirst('serviceTag') as String)
+        newIssue.setCustomFieldValue(SERIAL_NUMBER_FIELD, queryParams.getFirst('serialNumber') as String)
         newIssue.setCustomFieldValue(MODEL_FIELD, queryParams.getFirst('model') as String)
-        newIssue.setCustomFieldValue(INVOICE_NUMBER_FIELD, queryParams.getFirst('invoiceNumber') as String)
         newIssue.setCustomFieldValue(USER_FIELD, user)
         if (queryParams.getFirst('place') != '') {
             def availablePlaces = optionsManager.getOptions(PLACE_FIELD.getRelevantConfig(newIssue))
             def licenseTypeValue = availablePlaces.find { it.value == queryParams.getFirst('place') as String }
             newIssue.setCustomFieldValue(PLACE_FIELD, licenseTypeValue)
         }
+        if (((queryParams.getFirst('model') as String).toLowerCase()).contains('monitor')) // at least try
+            newIssue.setLabels([new Label(null, null, 'monitor')] as Set)
+        else if ((((queryParams.getFirst('model') as String).toLowerCase()).contains('laptop')) || (((queryParams.getFirst('model') as String).toLowerCase()).contains('macbook')))
+            newIssue.setLabels([new Label(null, null, 'laptop')] as Set)
+        else if ((((queryParams.getFirst('model') as String).toLowerCase()).contains('galaxy')) || (((queryParams.getFirst('model') as String).toLowerCase()).contains('iphone')))
+            newIssue.setLabels([new Label(null, null, 'phone')] as Set)
     }
     else if (queryParams.getFirst('assetType') == 'License') {
         def expireTimeValue = ''
-        if (queryParams.getFirst('expireTime') != '')
+        if (queryParams.getFirst('expireTime') != ''){
             expireTimeValue = Timestamp.valueOf("${queryParams.getFirst('expireTime')} 00:00:00.000")
+            newIssue.setCustomFieldValue(EXPIRE_TIME_FIELD, expireTimeValue)
+        }
         for (software in (queryParams.getFirst('software') as String).split(',')){
             def component = projectComponentManager.findByComponentName(ASSET_PROJECT.id, software)
             if (!component){
@@ -208,12 +223,11 @@ Issue createAsset(ApplicationUser user,
         def availableLicenseTypes = optionsManager.getOptions(LICENSE_TYPE_FIELD.getRelevantConfig(newIssue))
         def licenseTypeValue = availableLicenseTypes.find { it.value == queryParams.getFirst('licenseType') as String }
         newIssue.setCustomFieldValue(LICENSE_TYPE_FIELD, licenseTypeValue)
-        newIssue.setCustomFieldValue(EXPIRE_TIME_FIELD, expireTimeValue)
         newIssue.setCustomFieldValue(USER_FIELD, user)
         newIssue.setIssueType(LICENSE_ISSUE_TYPE)
     }
     else
-        log.error('not found provided license type')
+        log.error('not found provided asset type')
     Issue assetIssue = issueManager.createIssueObject(remoteUser, newIssue)
     issueLinkManager.createIssueLink(issue.id, newIssue.id, 10003, null, remoteUser)
     return assetIssue

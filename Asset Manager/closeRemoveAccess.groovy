@@ -17,15 +17,6 @@ import com.atlassian.jira.user.ApplicationUser
 
 @BaseScript CustomEndpointDelegate delegate
 
-def projectManager = ComponentAccessor.getProjectManager()
-def remoteUserManager = ComponentAccessor.getOSGiComponentInstanceOfType(UserManager)
-def issueManager = ComponentAccessor.getIssueManager()
-def userManager = ComponentAccessor.getUserManager()
-def issueService = ComponentAccessor.getIssueService()
-def issueLinkManager = ComponentAccessor.getIssueLinkManager()
-def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationProperties)
-def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
-
 closeRemoveAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams ->
     def dialog =
             """
@@ -47,7 +38,7 @@ closeRemoveAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-sof
               
               <div class='field-group' id="issue-field-group">
               	<label for="issue-field">Access/s</label>
-                <input class="text medium-long-field aui-select2" type="text" length="60" id="issue-field" name="Access" placeholder="Select a access/s"></input>
+                <input class="text full-width-field aui-select2" type="text" length="60" id="issue-field" name="Access" placeholder="Select a access/s"></input>
               </div>
    			  
               <p>Search for a user if you want to remove any access from his list, if not just quit</p>
@@ -69,30 +60,28 @@ closeRemoveAccessDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-sof
 }
 
 closeRemoveAccess(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-users', 'jira-servicedesk-users']) { MultivaluedMap queryParams, String body, HttpServletRequest request ->
+    def remoteUserManager = ComponentAccessor.getOSGiComponentInstanceOfType(UserManager)
+    def issueManager = ComponentAccessor.getIssueManager()
+    def userManager = ComponentAccessor.getUserManager()
+    def issueLinkManager = ComponentAccessor.getIssueLinkManager()
+    def applicationProperties = ScriptRunnerImpl.getOsgiService(ApplicationProperties)
+    def baseUrl = applicationProperties.getBaseUrl(UrlMode.ABSOLUTE)
+
     def CLOSE_TRANSITION_ID = 81 // id of transition "Close"
 
-    def issueParam = queryParams.getFirst('issueKey') as String
     def onlyCloseParam = queryParams.getFirst('onlyClose') as Boolean
-    def accessIssuesParam = queryParams.getFirst('accessIssue') as String
     def remoteUser = userManager.getUserByName(remoteUserManager.getRemoteUser(request)?.username as String)
-    def issue = issueManager.getIssueObject(issueParam)
-    def transitionOptions = new TransitionOptions.Builder().skipConditions().skipPermissions().skipValidators().build()
+    def issue = issueManager.getIssueObject(queryParams.getFirst('issueKey') as String)
     def message = ''
     if (!onlyCloseParam) {
-        log.warn(onlyCloseParam)
         def REMOVE_ACCESS_TRANSITION_ID = 11
         def CLOSE_ACCESS_TRANSITION_ID = 21
-        def assetProject = projectManager.getProjectByCurrentKey('ASSET')
-        def accessIssue
-        for (accessIssueParam in accessIssuesParam.split(',')){
-            accessIssue = issueManager.getIssueObject(accessIssueParam)
-            def removeAccessTransitionValidationResult = issueService.validateTransition(remoteUser, accessIssue.id, REMOVE_ACCESS_TRANSITION_ID, new IssueInputParametersImpl(), transitionOptions)
-            if(removeAccessTransitionValidationResult.isValid()) // if this transition is valid, issue it
-                issueService.transition(remoteUser, removeAccessTransitionValidationResult)
-            def closeAccessTransitionValidationResult = issueService.validateTransition(remoteUser, accessIssue.id, CLOSE_ACCESS_TRANSITION_ID, new IssueInputParametersImpl(), transitionOptions)
-            if(closeAccessTransitionValidationResult.isValid()) // if this transition is valid, issue it
-                issueService.transition(remoteUser, closeAccessTransitionValidationResult)
-            issueLinkManager.createIssueLink(issue.id, accessIssue.id, 10003, null, remoteUser)
+
+        for (access in (queryParams.getFirst('accessIssue') as String).split(',')){
+            def accessIssue = issueManager.getIssueObject(access)
+            transistIssue(remoteUser, accessIssue, REMOVE_ACCESS_TRANSITION_ID)
+            transistIssue(remoteUser, accessIssue, CLOSE_ACCESS_TRANSITION_ID)
+            issueLinkManager.createIssueLink(accessIssue.id, issue.id, 10003, null, remoteUser)
             message = message + "Access <a href='${baseUrl}/browse/${accessIssue.key}' target='_blank'>${accessIssue.key}</a> has been removed</br>"
         }
     }

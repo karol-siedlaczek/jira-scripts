@@ -3,8 +3,6 @@ import com.atlassian.jira.component.ComponentAccessor
 import com.atlassian.jira.workflow.TransitionOptions
 
 def issueLinkManager = ComponentAccessor.getIssueLinkManager()
-def issueManager = ComponentAccessor.getIssueManager()
-def userManager = ComponentAccessor.getUserManager()
 def issueService = ComponentAccessor.getIssueService()
 def currentUser = ComponentAccessor.getJiraAuthenticationContext().loggedInUser
 
