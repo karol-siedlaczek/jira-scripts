@@ -77,8 +77,8 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
           <input class="text medium-long-field aui-select2" type="text" length="60" id="license-type-field" name="License Type" placeholder="Select a license type"/>
         </div>
         <div class="field-group" id="expire-time-field-group" style="display: none">
-          <label for="expire-time-field">Expire time<span class="aui-icon icon-required"></span></label>
-          <input class="aui-date-picker text medium-long-field" id="expire-time-field" name="Expire time" type="date" required/>
+          <label for="expire-time-field">Expire time</label>
+          <input class="aui-date-picker text medium-long-field" id="expire-time-field" name="Expire time" type="date"/>
         </div>
         <div class="field-group" id="model-field-group" style="display: none">
           <label for="model-field">Model<span class="aui-icon icon-required"></span></label>
@@ -89,12 +89,16 @@ closePurchaseDialog(httpMethod: 'GET', groups: ['jira-core-users', 'jira-softwar
           <input class="text medium-long-field" type="text" id="serial-number-field" name="Serial Number" required/>
         </div>
         <div class="field-group" id="invoice-number-field-group" style="display: none">
-          <label for="invoice-number-field">Invoice number<span class="aui-icon icon-required"></span></label>
-          <input class="text medium-long-field" type="text" id="invoice-number-field" name="Invoice number" required/>
+          <label for="invoice-number-field">Invoice number</label>
+          <input class="text medium-long-field" type="text" id="invoice-number-field" name="Invoice number"/>
+        </div>
+        <div class="field-group" id="amount-field-group" style="display: none">
+          <label for="amount-field">Amount<span class="aui-icon icon-required"></span></label>
+          <input class="text medium-long-field" id="amount-field" name="Amount" type="number" min="1" value="1" required/>
         </div>
         <div class="field-group" id="cost-field-group">
-          <label for="cost-field">Cost [PLN]<span class="aui-icon icon-required">(required)</span></label>
-          <input class="text medium-long-field" id="cost-field" name="Cost" type="number" min="1" step="0.01" required/>
+          <label for="cost-field">Cost [PLN]</label>
+          <input class="text medium-long-field" id="cost-field" name="Cost" type="number" min="1" step="0.01"/>
         </div>
         <div class="field-group" id="cost-field2-group" style="display: none">
           <label for="cost-field">Cost [PLN]</label>
@@ -138,11 +142,15 @@ closePurchase(httpMethod: 'POST', groups: ['jira-core-users', 'jira-software-use
 
     if (assetCreation) {
         def user = userManager.getUserByName(queryParams.getFirst('user') as String)
-        Issue assetIssue = createAsset(user, remoteUser, issue, queryParams, issueManager)
-        message = message + "Asset <a href='${baseUrl}/browse/${assetIssue.key}' target='_blank'>${assetIssue.key}</a> has been created</br>"
+        def amount = queryParams.getFirst('amount') as Integer
+        for (def i = 0; i < amount; i++) {
+            Issue assetIssue = createAsset(user, remoteUser, issue, queryParams, issueManager)
+            message = message + "Asset <a href='${baseUrl}/browse/${assetIssue.key}' target='_blank'>${assetIssue.key}</a> has been created</br>"
+        }
     }
     else {
-        updateCostField(issue, queryParams.getFirst('cost') as Double)
+        if (queryParams.getFirst('cost') != '')
+            updateCostField(issue, queryParams.getFirst('cost') as Double)
     }
     message = message + "Issue <a href='${baseUrl}/browse/${issue.key}' target='_blank'>${issue.key}</a> has been closed</br>"
     transistIssue(remoteUser, issue, CLOSE_PURCHASE_TRANSITION_ID) //close curr issue

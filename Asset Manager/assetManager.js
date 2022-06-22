@@ -59,6 +59,7 @@
                                 '&serialNumber=' 	+ $(event.target).find('#serial-number-field').val() +
                                 '&model=' 		  	+ $(event.target).find('#model-field').val() +
                                 '&invoiceNumber=' 	+ $(event.target).find('#invoice-number-field').val() +
+                                '&amount='          + $(event.target).find('#amount-field').val() +
                                 '&software='		+ licenseList +
                                 '&user='			+ userSelected +
                                 '&place='           + placeSelected +
@@ -245,11 +246,13 @@
                 $(event.target).find('#place-field-group').hide()
                 $(event.target).find('#serial-number-field-group').hide()
                 $(event.target).find('#model-field-group').hide()
+                $(event.target).find('#amount-field-group').hide()
                 break
             case 'show':
                 $(event.target).find('#place-field-group').show()
                 $(event.target).find('#serial-number-field-group').show()
                 $(event.target).find('#model-field-group').show()
+                $(event.target).find('#amount-field-group').show()
                 break
             default:
                 console.error('not found oper')
