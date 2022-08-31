@@ -1,7 +1,3 @@
-/* Karol Siedlaczek Redge Technologies 2022
-    domyslne pola
-*/
-
 import groovy.transform.Field
 import com.atlassian.jira.component.ComponentAccessor
 import com.atlassian.jira.issue.CustomFieldManager
