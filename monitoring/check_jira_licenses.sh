@@ -71,7 +71,7 @@ elif [[ $WARN -ge $service_desk_free ]]
 then
    msg="${msg}WARNING - ${service_desk_free} service desk licenses left\n"
    STATUS_CODE=$NAGIOS_WARNING
-   if [[ $STATUS_CODE -lt $NAGIOS_WARNING ]]
+   if [[ $STATUS_CODE -lt $NAGIOS_WARNING ]]  # do not change status code is current status code is higher
    then
      STATUS_CODE=$NAGIOS_WARNING
   fi
@@ -88,7 +88,7 @@ then
 elif [[ $WARN -ge $software_free ]]
 then
    msg="${msg}WARNING - ${software_free} software licenses left\n"
-   if [[ $STATUS_CODE -lt $NAGIOS_WARNING ]]
+   if [[ $STATUS_CODE -lt $NAGIOS_WARNING ]]  # do not change status code is current status code is higher
    then
      STATUS_CODE=$NAGIOS_WARNING
   fi
