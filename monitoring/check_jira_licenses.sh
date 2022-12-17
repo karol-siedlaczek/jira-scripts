@@ -96,5 +96,5 @@ else
    msg="${msg}OK - ${software_free} software licenses left\n"
 fi
 
-echo -e ${msg?%%}
+echo -e ${msg%??}
 exit $STATUS_CODE
